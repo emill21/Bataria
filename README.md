@@ -2,10 +2,12 @@
 
 A Material You battery monitor for Android 8+ (dynamic wallpaper colors on Android 12+, themed icon on 13+).
 
-**Now** – live level ring, current (mA), power (W), voltage, temperature, time to full / time left, charge counter.
-**Health** – estimated health %, design vs. measured capacity, cycle count (Android 14+), every measured charge.
-**History** – 6 h / 24 h / 3 d charts of level, current and temperature, plus average drain and charge rate.
-**Settings** – background monitoring, design-capacity override, current unit/sign override, raw-reading diagnostics.
+**Now** – animated liquid battery gauge, live charging panel (watts, mAh added, peak), sparkline stat tiles for current, power, voltage and temperature, screen-on vs screen-off drain, time to full / time left.
+**Health** – expressive wavy health gauge, design vs. measured capacity, cycles (reported on Android 14+, estimated otherwise), health trend over time, every charge rated for battery-friendliness.
+**History** – 6 h / 24 h / 3 d / 7 d interactive charts (press and drag to inspect) for level, current, temperature and voltage with charging periods shaded.
+**Alerts** – charge-limit (e.g. unplug at 80 %), low battery and high temperature notifications.
+**Widget** – Material You home-screen widget with level, current, temperature and health.
+**Settings** – theme (system/light/dark), dynamic color, pure-black OLED mode, design-capacity override, current unit/sign override with raw-reading diagnostics.
 
 ## Build it
 

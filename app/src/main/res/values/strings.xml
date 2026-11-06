@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Battery Pulse</string>
+    <string name="widget_description">Battery level, current, temperature and health</string>
 </resources>

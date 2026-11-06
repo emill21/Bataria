@@ -22,6 +22,7 @@ import com.batterypulse.app.data.BatterySnapshot
 import com.batterypulse.app.ui.formatCurrent
 import com.batterypulse.app.ui.formatTemp
 import com.batterypulse.app.ui.statusLabel
+import com.batterypulse.app.widget.BatteryWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -80,9 +81,20 @@ class MonitorService : Service() {
         super.onDestroy()
     }
 
+    private var widgetLevel = -1
+    private var widgetCharging = false
+    private var widgetAt = 0L
+
     private fun tick() {
         val s = BatteryMonitor.sample()
         getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, buildNotification(s))
+        val now = System.currentTimeMillis()
+        if (s.level != widgetLevel || s.isCharging != widgetCharging || now - widgetAt > WIDGET_INTERVAL_MS) {
+            widgetLevel = s.level
+            widgetCharging = s.isCharging
+            widgetAt = now
+            scope.launch { BatteryWidget.refresh(this@MonitorService) }
+        }
     }
 
     private fun ensureChannel() {
@@ -125,6 +137,7 @@ class MonitorService : Service() {
         private const val CHANNEL_ID = "monitor"
         private const val NOTIFICATION_ID = 42
         private const val SAMPLE_INTERVAL_MS = 10_000L
+        private const val WIDGET_INTERVAL_MS = 5 * 60_000L
 
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, MonitorService::class.java))

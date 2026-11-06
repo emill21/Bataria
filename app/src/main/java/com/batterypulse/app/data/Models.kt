@@ -20,6 +20,7 @@ data class BatterySnapshot(
     val energyMwh: Float?,
     val cycleCount: Int?,
     val chargeTimeRemainingMs: Long?,
+    val screenOn: Boolean,
     /** Diagnostics: the untouched CURRENT_NOW value and the unit it was read as. */
     val rawCurrent: Int?,
     val currentUnitUsed: String,
@@ -45,6 +46,7 @@ data class Sample(
     val tempC: Float,
     val voltageMv: Int,
     val charging: Boolean,
+    val screenOn: Boolean,
 )
 
 /** A completed charge from which a capacity measurement was derived. */
@@ -57,6 +59,17 @@ data class ChargeSession(
     val capacityMah: Float,
     val method: String,
     val maxTempC: Float,
+    val peakPowerW: Float,
+    val avgPowerW: Float,
+)
+
+/** The charge happening right now. */
+data class LiveCharge(
+    val start: Long,
+    val startLevel: Int,
+    val mahAdded: Float?,
+    val peakPowerW: Float,
+    val avgPowerW: Float?,
 )
 
 enum class Confidence(val label: String) {
@@ -74,13 +87,23 @@ data class HealthEstimate(
     val confidence: Confidence,
     val healthPercent: Float?,
     val cycleCount: Int?,
+    val estimatedCycles: Float,
+    val trackingSince: Long,
     val sessionsUsed: Int,
 ) {
     companion object {
         val EMPTY = HealthEstimate(
-            null, "Unknown", null, "Not enough data yet", Confidence.NONE, null, null, 0
+            null, "Unknown", null, "Not enough data yet", Confidence.NONE, null, null, 0f, 0L, 0
         )
     }
 }
 
 data class TimeEstimate(val label: String, val millis: Long?)
+
+data class Appearance(val themeMode: String, val dynamicColor: Boolean, val pureBlack: Boolean) {
+    fun isDark(systemDark: Boolean) = when (themeMode) {
+        "light" -> false
+        "dark" -> true
+        else -> systemDark
+    }
+}

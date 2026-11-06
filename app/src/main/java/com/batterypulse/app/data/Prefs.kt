@@ -3,82 +3,114 @@ package com.batterypulse.app.data
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
-/** Small typed wrapper over SharedPreferences. */
+/** In-progress charge session, kept in memory and persisted periodically. */
+class SessionState(
+    var start: Long = 0L,
+    var startLevel: Int = 0,
+    var startCounter: Float = -1f,
+    var integratedMah: Float = 0f,
+    var maxTemp: Float = 0f,
+    var peakW: Float = 0f,
+    var energyWh: Float = 0f,
+    var chargeMs: Long = 0L,
+) {
+    val active: Boolean get() = start > 0L
+}
+
+/** Typed wrapper over SharedPreferences. */
 class Prefs(context: Context) {
     private val sp: SharedPreferences =
         context.getSharedPreferences("battery_pulse", Context.MODE_PRIVATE)
 
-    // ---- User settings ----
-    var monitoringEnabled: Boolean
-        get() = sp.getBoolean("monitoring", false)
-        set(v) = sp.edit { putBoolean("monitoring", v) }
+    private fun bool(key: String, def: Boolean) = object : ReadWriteProperty<Any?, Boolean> {
+        override fun getValue(thisRef: Any?, property: KProperty<*>) = sp.getBoolean(key, def)
+        override fun setValue(thisRef: Any?, property: KProperty<*>, value: Boolean) =
+            sp.edit { putBoolean(key, value) }
+    }
 
-    /** "auto" | "ua" | "ma" — unit reported by BATTERY_PROPERTY_CURRENT_NOW. */
-    var currentUnit: String
-        get() = sp.getString("current_unit", "auto") ?: "auto"
-        set(v) = sp.edit { putString("current_unit", v) }
+    private fun int(key: String, def: Int) = object : ReadWriteProperty<Any?, Int> {
+        override fun getValue(thisRef: Any?, property: KProperty<*>) = sp.getInt(key, def)
+        override fun setValue(thisRef: Any?, property: KProperty<*>, value: Int) =
+            sp.edit { putInt(key, value) }
+    }
 
-    /** "auto" | "normal" | "inverted" — sign convention of the current reading. */
-    var currentSign: String
-        get() = sp.getString("current_sign", "auto") ?: "auto"
-        set(v) = sp.edit { putString("current_sign", v) }
+    private fun long(key: String, def: Long) = object : ReadWriteProperty<Any?, Long> {
+        override fun getValue(thisRef: Any?, property: KProperty<*>) = sp.getLong(key, def)
+        override fun setValue(thisRef: Any?, property: KProperty<*>, value: Long) =
+            sp.edit { putLong(key, value) }
+    }
 
-    /** Design capacity entered by the user in mAh; 0 = not set. */
-    var designCapacityOverride: Int
-        get() = sp.getInt("design_override", 0)
-        set(v) = sp.edit { putInt("design_override", v) }
+    private fun float(key: String, def: Float) = object : ReadWriteProperty<Any?, Float> {
+        override fun getValue(thisRef: Any?, property: KProperty<*>) = sp.getFloat(key, def)
+        override fun setValue(thisRef: Any?, property: KProperty<*>, value: Float) =
+            sp.edit { putFloat(key, value) }
+    }
 
-    // ---- Auto-calibration evidence ----
-    var maxAbsRawCurrent: Int
-        get() = sp.getInt("cal_max_abs", 0)
-        set(v) = sp.edit { putInt("cal_max_abs", v) }
-    var rawCurrentSamples: Int
-        get() = sp.getInt("cal_samples", 0)
-        set(v) = sp.edit { putInt("cal_samples", v) }
-    var seenNegativeCurrent: Boolean
-        get() = sp.getBoolean("cal_seen_neg", false)
-        set(v) = sp.edit { putBoolean("cal_seen_neg", v) }
-    var signVotesNormal: Int
-        get() = sp.getInt("cal_votes_normal", 0)
-        set(v) = sp.edit { putInt("cal_votes_normal", v) }
-    var signVotesInverted: Int
-        get() = sp.getInt("cal_votes_inverted", 0)
-        set(v) = sp.edit { putInt("cal_votes_inverted", v) }
+    private fun string(key: String, def: String) = object : ReadWriteProperty<Any?, String> {
+        override fun getValue(thisRef: Any?, property: KProperty<*>) = sp.getString(key, def) ?: def
+        override fun setValue(thisRef: Any?, property: KProperty<*>, value: String) =
+            sp.edit { putString(key, value) }
+    }
+
+    // ---- Monitoring & calibration ----
+    var monitoringEnabled by bool("monitoring", false)
+    /** "auto" | "ua" | "ma" */
+    var currentUnit by string("current_unit", "auto")
+    /** "auto" | "normal" | "inverted" */
+    var currentSign by string("current_sign", "auto")
+    var designCapacityOverride by int("design_override", 0)
+
+    var maxAbsRawCurrent by int("cal_max_abs", 0)
+    var rawCurrentSamples by int("cal_samples", 0)
+    var seenNegativeCurrent by bool("cal_seen_neg", false)
+    var signVotesNormal by int("cal_votes_normal", 0)
+    var signVotesInverted by int("cal_votes_inverted", 0)
 
     fun resetCalibration() = sp.edit {
         remove("cal_max_abs"); remove("cal_samples"); remove("cal_seen_neg")
         remove("cal_votes_normal"); remove("cal_votes_inverted")
     }
 
-    // ---- In-progress charge session (survives process death) ----
-    val sessionActive: Boolean get() = sessionStart > 0
-    var sessionStart: Long
-        get() = sp.getLong("s_start", 0L)
-        private set(v) = sp.edit { putLong("s_start", v) }
-    var sessionStartLevel: Int
-        get() = sp.getInt("s_level", 0)
-        private set(v) = sp.edit { putInt("s_level", v) }
-    var sessionStartCounter: Float
-        get() = sp.getFloat("s_counter", -1f)
-        private set(v) = sp.edit { putFloat("s_counter", v) }
-    var sessionIntegratedMah: Float
-        get() = sp.getFloat("s_integrated", 0f)
-        set(v) = sp.edit { putFloat("s_integrated", v) }
-    var sessionMaxTemp: Float
-        get() = sp.getFloat("s_max_temp", 0f)
-        set(v) = sp.edit { putFloat("s_max_temp", v) }
+    // ---- Appearance ----
+    /** "system" | "light" | "dark" */
+    var themeMode by string("theme_mode", "system")
+    var dynamicColor by bool("dynamic_color", true)
+    var pureBlack by bool("pure_black", false)
 
-    fun startSession(time: Long, level: Int, counterMah: Float?, tempC: Float) {
-        sessionStart = time
-        sessionStartLevel = level
-        sessionStartCounter = counterMah ?: -1f
-        sessionIntegratedMah = 0f
-        sessionMaxTemp = if (tempC.isNaN()) 0f else tempC
-    }
+    // ---- Alerts ----
+    var chargeAlarmOn by bool("alarm_charge_on", false)
+    var chargeAlarmLevel by int("alarm_charge_level", 80)
+    var chargeAlarmFired by bool("alarm_charge_fired", false)
+    var lowAlarmOn by bool("alarm_low_on", false)
+    var lowAlarmLevel by int("alarm_low_level", 20)
+    var lowAlarmFired by bool("alarm_low_fired", false)
+    var tempAlarmOn by bool("alarm_temp_on", false)
+    var tempAlarmC by int("alarm_temp_c", 42)
+    var tempAlarmFired by bool("alarm_temp_fired", false)
 
-    fun clearSession() = sp.edit {
-        remove("s_start"); remove("s_level"); remove("s_counter")
-        remove("s_integrated"); remove("s_max_temp")
+    // ---- Wear tracking ----
+    var cumulativeChargePct by float("cum_charge_pct", 0f)
+    var trackingSince by long("tracking_since", 0L)
+
+    // ---- Charge session ----
+    fun loadSession() = SessionState(
+        start = sp.getLong("s_start", 0L),
+        startLevel = sp.getInt("s_level", 0),
+        startCounter = sp.getFloat("s_counter", -1f),
+        integratedMah = sp.getFloat("s_integrated", 0f),
+        maxTemp = sp.getFloat("s_max_temp", 0f),
+        peakW = sp.getFloat("s_peak_w", 0f),
+        energyWh = sp.getFloat("s_energy_wh", 0f),
+        chargeMs = sp.getLong("s_charge_ms", 0L),
+    )
+
+    fun saveSession(s: SessionState) = sp.edit {
+        putLong("s_start", s.start); putInt("s_level", s.startLevel)
+        putFloat("s_counter", s.startCounter); putFloat("s_integrated", s.integratedMah)
+        putFloat("s_max_temp", s.maxTemp); putFloat("s_peak_w", s.peakW)
+        putFloat("s_energy_wh", s.energyWh); putLong("s_charge_ms", s.chargeMs)
     }
 }

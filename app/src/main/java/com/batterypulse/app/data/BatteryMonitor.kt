@@ -1,24 +1,29 @@
 package com.batterypulse.app.data
 
 import android.content.Context
+import com.batterypulse.app.monitor.Alerts
+import com.batterypulse.app.monitor.MonitorService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import kotlin.math.max
 
 /**
  * Process-wide battery state. Whoever calls [sample] (the UI every 2 s, the background
  * service every 10 s and on every battery broadcast) feeds the same pipeline:
- * smoothing, history recording, charge-session tracking and health estimation.
+ * smoothing, history, charge-session tracking, health estimation and alerts.
  */
 object BatteryMonitor {
     private const val HISTORY_INTERVAL_MS = 60_000L
-    private const val HISTORY_KEEP_MS = 3L * 24 * 3_600_000
+    private const val HISTORY_KEEP_MS = 7L * 24 * 3_600_000
     private const val MIN_SESSION_DELTA = 15        // % gained before a charge counts
     private const val MAX_INTEGRATION_GAP_MS = 5 * 60_000L
     private const val SYSFS_REFRESH_MS = 10 * 60_000L
+    private const val SESSION_PERSIST_MS = 30_000L
+    private const val RECENT_SIZE = 90
 
     lateinit var prefs: Prefs
         private set
@@ -26,6 +31,10 @@ object BatteryMonitor {
 
     private val _snapshot = MutableStateFlow<BatterySnapshot?>(null)
     val snapshot: StateFlow<BatterySnapshot?> = _snapshot.asStateFlow()
+
+    /** Last few minutes of raw samples, for sparklines. */
+    private val _recent = MutableStateFlow<List<BatterySnapshot>>(emptyList())
+    val recent: StateFlow<List<BatterySnapshot>> = _recent.asStateFlow()
 
     private val _history = MutableStateFlow<List<Sample>>(emptyList())
     val history: StateFlow<List<Sample>> = _history.asStateFlow()
@@ -39,8 +48,20 @@ object BatteryMonitor {
     private val _time = MutableStateFlow<TimeEstimate?>(null)
     val timeEstimate: StateFlow<TimeEstimate?> = _time.asStateFlow()
 
+    private val _live = MutableStateFlow<LiveCharge?>(null)
+    val liveCharge: StateFlow<LiveCharge?> = _live.asStateFlow()
+
+    private val _monitoring = MutableStateFlow(false)
+    val monitoring: StateFlow<Boolean> = _monitoring.asStateFlow()
+
+    private val _appearance = MutableStateFlow(Appearance("system", true, false))
+    val appearance: StateFlow<Appearance> = _appearance.asStateFlow()
+
+    private var session = SessionState()
+    private var sessionSavedAt = 0L
     private var lastSampleAt = 0L
     private var lastHistoryAt = 0L
+    private var lastLevel = -1
     private var emaDrainMa: Float? = null
     private var emaChargeMa: Float? = null
 
@@ -56,30 +77,56 @@ object BatteryMonitor {
         if (::app.isInitialized) return
         app = context.applicationContext
         prefs = Prefs(app)
+        if (prefs.trackingSince == 0L) prefs.trackingSince = System.currentTimeMillis()
+        session = prefs.loadSession()
+        _monitoring.value = prefs.monitoringEnabled
+        _appearance.value = Appearance(prefs.themeMode, prefs.dynamicColor, prefs.pureBlack)
         _history.value = loadHistory()
         lastHistoryAt = _history.value.lastOrNull()?.t ?: 0L
         _sessions.value = loadSessions()
+        Alerts.ensureChannel(app)
         recomputeHealth(null)
     }
+
+    // ---------- Settings that the UI observes ----------
+
+    fun setMonitoring(context: Context, on: Boolean) {
+        prefs.monitoringEnabled = on
+        _monitoring.value = on
+        if (on) MonitorService.start(context) else MonitorService.stop(context)
+    }
+
+    fun setAppearance(a: Appearance) {
+        prefs.themeMode = a.themeMode
+        prefs.dynamicColor = a.dynamicColor
+        prefs.pureBlack = a.pureBlack
+        _appearance.value = a
+    }
+
+    // ---------- Sampling ----------
 
     @Synchronized
     fun sample(): BatterySnapshot {
         val s = BatteryReader.read(app, prefs)
         val now = s.timestamp
         val gap = if (lastSampleAt > 0) now - lastSampleAt else 0L
-        val dtHours = if (gap in 1..MAX_INTEGRATION_GAP_MS) gap / 3_600_000f else 0f
+        val validGap = gap in 1..MAX_INTEGRATION_GAP_MS
         lastSampleAt = now
 
         updateSmoothing(s)
-        trackSession(s, dtHours)
+        trackWear(s)
+        trackSession(s, if (validGap) gap else 0L)
         if (now - lastHistoryAt >= HISTORY_INTERVAL_MS) appendHistory(s)
         recomputeHealth(s)
         _time.value = computeTime(s, _health.value)
+        _recent.value = (_recent.value + s).takeLast(RECENT_SIZE)
         _snapshot.value = s
+        try {
+            Alerts.check(app, s, prefs)
+        } catch (e: Exception) {
+        }
         return s
     }
-
-    // ---------- Smoothing ----------
 
     private fun updateSmoothing(s: BatterySnapshot) {
         val i = s.currentMa ?: return
@@ -93,46 +140,85 @@ object BatteryMonitor {
         }
     }
 
+    /** Sums every percent charged; 100 % charged ≈ one full cycle. */
+    private fun trackWear(s: BatterySnapshot) {
+        if (lastLevel >= 0 && s.isPlugged && s.level > lastLevel) {
+            prefs.cumulativeChargePct = prefs.cumulativeChargePct + (s.level - lastLevel)
+        }
+        lastLevel = s.level
+    }
+
     // ---------- Charge sessions (capacity measurement) ----------
 
-    private fun trackSession(s: BatterySnapshot, dtHours: Float) {
-        val active = prefs.sessionActive
-        if (s.isCharging && !active) {
-            prefs.startSession(s.timestamp, s.level, s.chargeCounterMah, s.temperatureC)
+    private fun trackSession(s: BatterySnapshot, gapMs: Long) {
+        if (s.isCharging && !session.active) {
+            session = SessionState(
+                start = s.timestamp,
+                startLevel = s.level,
+                startCounter = s.chargeCounterMah ?: -1f,
+                maxTemp = if (s.temperatureC.isNaN()) 0f else s.temperatureC,
+            )
+            prefs.saveSession(session)
+            sessionSavedAt = s.timestamp
+            _live.value = liveFrom(s)
             return
         }
-        if (!active) return
+        if (!session.active) {
+            _live.value = null
+            return
+        }
         if (s.isCharging) {
+            val hours = gapMs / 3_600_000f
             val i = s.currentMa
-            if (i != null && i > 0 && dtHours > 0f) {
-                prefs.sessionIntegratedMah = prefs.sessionIntegratedMah + i * dtHours
+            if (i != null && i > 0 && gapMs > 0) session.integratedMah += i * hours
+            val p = s.powerW
+            if (p != null && p > 0f) {
+                session.peakW = max(session.peakW, p)
+                if (gapMs > 0) {
+                    session.energyWh += p * hours
+                    session.chargeMs += gapMs
+                }
             }
-            if (!s.temperatureC.isNaN() && s.temperatureC > prefs.sessionMaxTemp) {
-                prefs.sessionMaxTemp = s.temperatureC
+            if (!s.temperatureC.isNaN() && s.temperatureC > session.maxTemp) session.maxTemp = s.temperatureC
+            if (s.timestamp - sessionSavedAt > SESSION_PERSIST_MS) {
+                prefs.saveSession(session)
+                sessionSavedAt = s.timestamp
             }
+            _live.value = liveFrom(s)
             return
         }
         finishSession(s)
+        _live.value = null
+    }
+
+    private fun liveFrom(s: BatterySnapshot): LiveCharge {
+        val counterDelta = s.chargeCounterMah?.let { c ->
+            if (session.startCounter > 0f) (c - session.startCounter).takeIf { it >= 0f } else null
+        }
+        return LiveCharge(
+            start = session.start,
+            startLevel = session.startLevel,
+            mahAdded = counterDelta ?: session.integratedMah.takeIf { it > 0f },
+            peakPowerW = session.peakW,
+            avgPowerW = if (session.chargeMs > 60_000) session.energyWh / (session.chargeMs / 3_600_000f) else null,
+        )
     }
 
     private fun finishSession(s: BatterySnapshot) {
-        val start = prefs.sessionStart
-        val startLevel = prefs.sessionStartLevel
-        val startCounter = prefs.sessionStartCounter
-        val integrated = prefs.sessionIntegratedMah
-        val maxTemp = prefs.sessionMaxTemp
-        prefs.clearSession()
+        val st = session
+        session = SessionState()
+        prefs.saveSession(session)
 
-        val delta = s.level - startLevel
+        val delta = s.level - st.startLevel
         if (delta < MIN_SESSION_DELTA) return
 
         val endCounter = s.chargeCounterMah
         val counterDelta =
-            if (startCounter > 0f && endCounter != null) endCounter - startCounter else null
+            if (st.startCounter > 0f && endCounter != null) endCounter - st.startCounter else null
         val (mah, method) = if (counterDelta != null && counterDelta > 0f) {
             counterDelta to "Charge counter"
         } else {
-            integrated to "Current integration"
+            st.integratedMah to "Current integration"
         }
         if (mah <= 0f) return
 
@@ -142,11 +228,13 @@ object BatteryMonitor {
         else capacity in 500f..25_000f
         if (!plausible) return
 
-        val session = ChargeSession(
-            start = start, end = s.timestamp, startLevel = startLevel, endLevel = s.level,
-            mahAdded = mah, capacityMah = capacity, method = method, maxTempC = maxTemp,
+        val avgW = if (st.chargeMs > 60_000) st.energyWh / (st.chargeMs / 3_600_000f) else 0f
+        val result = ChargeSession(
+            start = st.start, end = s.timestamp, startLevel = st.startLevel, endLevel = s.level,
+            mahAdded = mah, capacityMah = capacity, method = method, maxTempC = st.maxTemp,
+            peakPowerW = st.peakW, avgPowerW = avgW,
         )
-        _sessions.value = (_sessions.value + session).takeLast(100)
+        _sessions.value = (_sessions.value + result).takeLast(200)
         saveSessions()
     }
 
@@ -219,6 +307,8 @@ object BatteryMonitor {
             confidence = confidence,
             healthPercent = pct,
             cycleCount = s?.cycleCount ?: _health.value.cycleCount,
+            estimatedCycles = prefs.cumulativeChargePct / 100f,
+            trackingSince = prefs.trackingSince,
             sessionsUsed = recent.size,
         )
     }
@@ -234,14 +324,14 @@ object BatteryMonitor {
             val counter = s.chargeCounterMah ?: full?.let { it * s.level / 100f } ?: return null
             if (full == null || rate < 50f) return null
             val hours = (full - counter).coerceAtLeast(0f) / rate
-            return TimeEstimate("until full (est.)", (hours * 3_600_000).toLong())
+            return TimeEstimate("until full", (hours * 3_600_000).toLong())
         }
         if (!s.isPlugged) {
             val drain = emaDrainMa ?: return null
             if (drain < 5f) return null
             val remaining = s.chargeCounterMah ?: full?.let { it * s.level / 100f } ?: return null
             val hours = remaining / drain
-            return TimeEstimate("left at current usage", (hours * 3_600_000).toLong())
+            return TimeEstimate("left at this usage", (hours * 3_600_000).toLong())
         }
         return null
     }
@@ -256,6 +346,7 @@ object BatteryMonitor {
             tempC = s.temperatureC,
             voltageMv = s.voltageMv,
             charging = s.isCharging,
+            screenOn = s.screenOn,
         )
         lastHistoryAt = s.timestamp
         val cutoff = s.timestamp - HISTORY_KEEP_MS
@@ -275,7 +366,7 @@ object BatteryMonitor {
     }
 
     private fun Sample.toLine() =
-        "$t,$level,$currentMa,${if (tempC.isNaN()) "" else tempC},$voltageMv,${if (charging) 1 else 0}\n"
+        "$t,$level,$currentMa,${if (tempC.isNaN()) "" else tempC},$voltageMv,${if (charging) 1 else 0},${if (screenOn) 1 else 0}\n"
 
     private fun loadHistory(): List<Sample> {
         val cutoff = System.currentTimeMillis() - HISTORY_KEEP_MS
@@ -293,6 +384,7 @@ object BatteryMonitor {
                     tempC = p[3].toFloatOrNull() ?: Float.NaN,
                     voltageMv = p[4].toIntOrNull() ?: 0,
                     charging = p[5].trim() == "1",
+                    screenOn = p.getOrNull(6)?.trim() != "0",
                 )
             }
         } catch (e: Exception) {
@@ -308,6 +400,7 @@ object BatteryMonitor {
                 put("startLevel", s.startLevel); put("endLevel", s.endLevel)
                 put("mah", s.mahAdded.toDouble()); put("cap", s.capacityMah.toDouble())
                 put("method", s.method); put("maxTemp", s.maxTempC.toDouble())
+                put("peakW", s.peakPowerW.toDouble()); put("avgW", s.avgPowerW.toDouble())
             })
         }
         try {
@@ -327,6 +420,8 @@ object BatteryMonitor {
                     mahAdded = o.getDouble("mah").toFloat(), capacityMah = o.getDouble("cap").toFloat(),
                     method = o.optString("method", "Charge counter"),
                     maxTempC = o.optDouble("maxTemp", 0.0).toFloat(),
+                    peakPowerW = o.optDouble("peakW", 0.0).toFloat(),
+                    avgPowerW = o.optDouble("avgW", 0.0).toFloat(),
                 )
             }
         }
@@ -336,11 +431,17 @@ object BatteryMonitor {
 
     @Synchronized
     fun clearData() {
-        try { historyFile.delete(); sessionsFile.delete() } catch (e: Exception) { }
+        try {
+            historyFile.delete(); sessionsFile.delete()
+        } catch (e: Exception) {
+        }
         _history.value = emptyList()
         _sessions.value = emptyList()
         lastHistoryAt = 0L
-        prefs.clearSession()
+        session = SessionState()
+        prefs.saveSession(session)
+        prefs.cumulativeChargePct = 0f
+        prefs.trackingSince = System.currentTimeMillis()
         recomputeHealth(_snapshot.value)
     }
 }

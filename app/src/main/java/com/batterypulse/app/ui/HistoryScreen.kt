@@ -22,12 +22,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.batterypulse.app.data.Sample
 import java.util.Locale
@@ -35,17 +35,19 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 
-private val RANGES_H = listOf(6, 24, 72)
+private val RANGES_H = listOf(6, 24, 72, 168)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
-    var selected by rememberSaveable { mutableIntStateOf(1) }
-    val hours = RANGES_H[selected]
-    val now = history.lastOrNull()?.t?.coerceAtLeast(System.currentTimeMillis()) ?: System.currentTimeMillis()
+    var selectedRange by rememberSaveable { mutableIntStateOf(1) }
+    var cursor by remember { mutableStateOf<Long?>(null) }
+    val hours = RANGES_H[selectedRange]
+    val now = max(history.lastOrNull()?.t ?: 0L, System.currentTimeMillis())
     val start = now - hours * 3_600_000L
     val pts = remember(history, hours) { history.filter { it.t >= start } }
-    val stats = remember(pts) { computeStats(pts) }
+    val stats = remember(pts) { computeUsage(pts) }
+    val chargingRanges = remember(pts) { ranges(pts, { it.t }) { it.charging } }
     val colors = MaterialTheme.colorScheme
 
     LazyColumn(
@@ -56,8 +58,8 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 RANGES_H.forEachIndexed { i, h ->
                     SegmentedButton(
-                        selected = i == selected,
-                        onClick = { selected = i },
+                        selected = i == selectedRange,
+                        onClick = { selectedRange = i; cursor = null },
                         shape = SegmentedButtonDefaults.itemShape(index = i, count = RANGES_H.size),
                     ) { Text(if (h < 24) "${h}h" else "${h / 24}d") }
                 }
@@ -68,8 +70,8 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
             item {
                 SectionCard {
                     Text(
-                        "History is recorded once a minute while the app is open, or all the time with " +
-                            "background monitoring turned on in Settings.",
+                        "History is recorded every minute while the app is open, or all the time with " +
+                            "background monitoring on.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -80,20 +82,32 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
 
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MiniStat("Avg drain", stats.drainPerHour?.let { fmt("%.1f %%/h", it) } ?: "—", Modifier.weight(1f))
-                MiniStat("Avg charge", stats.chargePerHour?.let { fmt("%.0f %%/h", it) } ?: "—", Modifier.weight(1f))
-                MiniStat("Peak temp", stats.maxTemp?.let { fmt("%.1f °C", it) } ?: "—", Modifier.weight(1f))
+                MiniStat("Drain", formatRate(stats.drainPerHour), Modifier.weight(1f))
+                MiniStat("Charge", stats.chargePerHour?.let { fmt("%.0f%%/h", it) } ?: "—", Modifier.weight(1f))
+                MiniStat("Peak", stats.maxTemp?.let { fmt("%.1f°", it) } ?: "—", Modifier.weight(1f))
             }
+        }
+
+        item {
+            Text(
+                "Press and drag on a chart to inspect it. Shaded areas are charging.",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            )
         }
 
         item {
             ChartCard(
                 title = "Battery level",
-                current = pts.lastOrNull()?.let { "${it.level}%" },
-                points = pts.map { it.t to it.level.toFloat() },
+                samples = pts,
+                value = { it.level.toFloat() },
+                format = { "${it.toInt()}%" },
                 startT = start, endT = now, minY = 0f, maxY = 100f,
                 yLabels = "100%" to "0%",
                 color = colors.primary, hours = hours,
+                shaded = chargingRanges, shadeColor = colors.tertiary,
+                cursor = cursor, onCursor = { cursor = it },
             )
         }
         item {
@@ -102,12 +116,15 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
             val hi = ceil(max(values.maxOrNull() ?: 500f, 0f) / 500f) * 500f
             ChartCard(
                 title = "Current",
-                current = pts.lastOrNull()?.let { formatCurrent(it.currentMa) },
-                points = pts.map { it.t to it.currentMa },
+                samples = pts,
+                value = { it.currentMa },
+                format = { formatCurrent(it) },
                 startT = start, endT = now,
                 minY = lo, maxY = if (hi > lo) hi else lo + 500f,
                 yLabels = fmt("%+,.0f", hi) to fmt("%+,.0f", lo),
                 color = colors.tertiary, hours = hours, baseline = 0f,
+                shaded = chargingRanges, shadeColor = colors.tertiary,
+                cursor = cursor, onCursor = { cursor = it },
             )
         }
         item {
@@ -116,11 +133,30 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
             val hi = ceil((temps.maxOrNull() ?: 40f) + 2f)
             ChartCard(
                 title = "Temperature",
-                current = pts.lastOrNull()?.let { formatTemp(it.tempC) },
-                points = pts.map { it.t to it.tempC },
+                samples = pts,
+                value = { it.tempC },
+                format = { formatTemp(it) },
                 startT = start, endT = now, minY = lo, maxY = hi,
                 yLabels = fmt("%.0f°", hi) to fmt("%.0f°", lo),
                 color = colors.error, hours = hours,
+                shaded = chargingRanges, shadeColor = colors.tertiary,
+                cursor = cursor, onCursor = { cursor = it },
+            )
+        }
+        item {
+            val volts = pts.map { it.voltageMv.toFloat() }.filter { it > 0f }
+            val lo = floor(((volts.minOrNull() ?: 3500f) - 50f) / 100f) * 100f
+            val hi = ceil(((volts.maxOrNull() ?: 4400f) + 50f) / 100f) * 100f
+            ChartCard(
+                title = "Voltage",
+                samples = pts,
+                value = { if (it.voltageMv > 0) it.voltageMv.toFloat() else Float.NaN },
+                format = { fmt("%.2f V", it / 1000f) },
+                startT = start, endT = now, minY = lo, maxY = hi,
+                yLabels = fmt("%.1f V", hi / 1000f) to fmt("%.1f V", lo / 1000f),
+                color = colors.secondary, hours = hours,
+                shaded = chargingRanges, shadeColor = colors.tertiary,
+                cursor = cursor, onCursor = { cursor = it },
             )
         }
     }
@@ -137,7 +173,7 @@ private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier
     ) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(value, style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -145,8 +181,9 @@ private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier
 @Composable
 private fun ChartCard(
     title: String,
-    current: String?,
-    points: List<Pair<Long, Float>>,
+    samples: List<Sample>,
+    value: (Sample) -> Float,
+    format: (Float) -> String,
     startT: Long,
     endT: Long,
     minY: Float,
@@ -154,8 +191,15 @@ private fun ChartCard(
     yLabels: Pair<String, String>,
     color: Color,
     hours: Int,
+    shaded: List<Pair<Long, Long>>,
+    shadeColor: Color,
+    cursor: Long?,
+    onCursor: (Long?) -> Unit,
     baseline: Float? = null,
 ) {
+    val points = remember(samples) { samples.map { it.t to value(it) } }
+    val idx = cursor?.let { nearestIndex(points, it) } ?: points.lastIndex
+    val shown = points.getOrNull(idx)
     Card(
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -163,29 +207,37 @@ private fun ChartCard(
     ) {
         Column(Modifier.padding(20.dp)) {
             Row {
-                Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                if (current != null) {
-                    Text(current, style = MaterialTheme.typography.titleMedium, color = color, fontWeight = FontWeight.SemiBold)
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        shown?.let { if (cursor != null) formatDayClock(it.first) else "Latest" } ?: "No data",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (shown != null && !shown.second.isNaN()) {
+                    Text(format(shown.second), style = MaterialTheme.typography.headlineSmall, color = color)
                 }
             }
             Spacer(Modifier.height(16.dp))
-            Row(Modifier.height(160.dp)) {
+            Row(Modifier.height(170.dp)) {
                 Column(
-                    Modifier.fillMaxHeight().width(48.dp),
+                    Modifier.fillMaxHeight().width(44.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(yLabels.first, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(yLabels.second, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                LineChart(
+                InteractiveChart(
                     points = points, startT = startT, endT = endT, minY = minY, maxY = maxY,
-                    color = color, baseline = baseline,
+                    color = color, baseline = baseline, shaded = shaded, shadeColor = shadeColor,
+                    selectedT = cursor, onSelect = onCursor,
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                 )
             }
-            Row(Modifier.fillMaxWidth().padding(start = 48.dp, top = 6.dp)) {
+            Row(Modifier.fillMaxWidth().padding(start = 44.dp, top = 6.dp)) {
                 Text(
-                    if (hours < 24) "−${hours}h" else "−${hours / 24}d",
+                    formatDayClock(startT),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
@@ -194,25 +246,4 @@ private fun ChartCard(
             }
         }
     }
-}
-
-private data class HistoryStats(val drainPerHour: Float?, val chargePerHour: Float?, val maxTemp: Float?)
-
-private fun computeStats(pts: List<Sample>): HistoryStats {
-    var dropped = 0f; var drainMs = 0L
-    var gained = 0f; var chargeMs = 0L
-    for (k in 1 until pts.size) {
-        val a = pts[k - 1]; val b = pts[k]
-        val dt = b.t - a.t
-        if (dt <= 0 || dt > 10 * 60_000L) continue
-        if (!a.charging && !b.charging) {
-            dropped += (a.level - b.level).coerceAtLeast(0); drainMs += dt
-        } else if (a.charging && b.charging) {
-            gained += (b.level - a.level).coerceAtLeast(0); chargeMs += dt
-        }
-    }
-    val drain = if (drainMs > 30 * 60_000L) dropped / (drainMs / 3_600_000f) else null
-    val charge = if (chargeMs > 10 * 60_000L) gained / (chargeMs / 3_600_000f) else null
-    val maxT = pts.map { it.tempC }.filter { !it.isNaN() }.maxOrNull()
-    return HistoryStats(drain, charge, maxT)
 }

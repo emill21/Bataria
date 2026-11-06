@@ -1,15 +1,26 @@
 package com.batterypulse.app.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Autorenew
+import androidx.compose.material.icons.rounded.BatteryStd
+import androidx.compose.material.icons.rounded.Science
+import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -17,10 +28,16 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.batterypulse.app.data.BatterySnapshot
@@ -41,93 +58,49 @@ fun HealthScreen(
         contentPadding = padding.withPage(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item { HealthHero(health) }
+
+        item { CapacityCard(health, s) }
+
         item {
-            val pct = health.healthPercent
-            val (verdict, container, onContainer) = when {
-                pct == null -> Triple("Measuring", colors.surfaceContainerHigh, colors.onSurface)
-                pct >= 90f -> Triple("Excellent", colors.primaryContainer, colors.onPrimaryContainer)
-                pct >= 80f -> Triple("Good", colors.primaryContainer, colors.onPrimaryContainer)
-                pct >= 70f -> Triple("Fair", colors.tertiaryContainer, colors.onTertiaryContainer)
-                else -> Triple("Worn — consider replacing", colors.errorContainer, colors.onErrorContainer)
-            }
-            Card(
-                shape = CardShape,
-                colors = CardDefaults.cardColors(containerColor = container, contentColor = onContainer),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(24.dp)) {
-                    Text("Estimated health", style = MaterialTheme.typography.labelLarge)
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            pct?.let { String.format(Locale.getDefault(), "%.0f", it) } ?: "—",
-                            fontSize = 64.sp, lineHeight = 64.sp, fontWeight = FontWeight.Bold,
-                        )
-                        if (pct != null) {
-                            Text("%", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 10.dp))
-                        }
-                    }
-                    Text(verdict, style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(16.dp))
-                    LinearProgressIndicator(
-                        progress = { ((pct ?: 0f) / 100f).coerceIn(0f, 1f) },
-                        modifier = Modifier.fillMaxWidth().height(10.dp),
-                        color = onContainer,
-                        trackColor = onContainer.copy(alpha = 0.15f),
-                        strokeCap = StrokeCap.Round,
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        "${health.confidence.label} · ${health.estimateSource}",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                MiniCard(
+                    label = if (health.cycleCount != null) "Charge cycles" else "Est. cycles",
+                    value = health.cycleCount?.toString()
+                        ?: String.format(Locale.getDefault(), "%.1f", health.estimatedCycles),
+                    sub = if (health.cycleCount != null) "Reported by Android"
+                    else "Since ${formatDate(health.trackingSince)}",
+                    modifier = Modifier.weight(1f),
+                )
+                MiniCard(
+                    label = "Measured charges",
+                    value = "${sessions.size}",
+                    sub = "${health.sessionsUsed} used for health",
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
 
-        item {
-            SectionCard(title = "Capacity") {
-                InfoRow("Design capacity", formatMah(health.designMah), health.designSource)
-                InfoRow("Estimated full capacity", formatMah(health.estimatedMah), health.estimateSource)
-                s?.estimatedFullMah?.let {
-                    InfoRow("Fuel gauge estimate", formatMah(it), "Charge counter ÷ current level")
-                }
-                InfoRow(
-                    "Charge cycles",
-                    health.cycleCount?.toString() ?: "—",
-                    if (health.cycleCount == null) "Reported on Android 14+ by supported devices" else "Reported by Android",
-                )
-                s?.let { InfoRow("Android health status", healthLabel(it.health)) }
-            }
+        if (sessions.size >= 2) {
+            item { TrendCard(sessions, health.designMah) }
         }
 
         if (health.confidence != Confidence.HIGH) {
             item {
-                SectionCard(title = "Improve accuracy") {
-                    Text(
-                        "Health is measured from real charges: Battery Pulse tracks how much charge flows in " +
-                            "while the level rises, and works out the full capacity. Charges of 15% or more " +
-                            "count — a 20%→80% charge is ideal. Three charges gives a high-confidence result.\n\n" +
-                            "Turn on background monitoring in Settings so charges are recorded while the app is closed.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                    )
+                SectionCard(title = "How to improve accuracy", container = colors.secondaryContainer) {
+                    Tip("1", "Turn on background monitoring so charges are recorded while the app is closed.")
+                    Tip("2", "Charge by 15% or more in one go — 20% → 80% is ideal.")
+                    Tip("3", "After three charges, confidence becomes High.")
                 }
             }
         }
 
-        item {
-            Text(
-                "Charge sessions",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 4.dp, top = 8.dp),
-            )
-        }
+        item { SectionHeader("Charge history") }
         if (sessions.isEmpty()) {
             item {
                 SectionCard {
                     Text(
-                        "No measured charges yet.",
+                        "No measured charges yet. Plug in and charge by at least 15%.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -135,39 +108,257 @@ fun HealthScreen(
                 }
             }
         } else {
-            item {
-                SectionCard {
-                    val list = sessions.asReversed().take(20)
-                    list.forEachIndexed { i, session ->
-                        SessionRow(session)
-                        if (i < list.lastIndex) HorizontalDivider(Modifier.padding(horizontal = 20.dp))
-                    }
-                }
+            val list = sessions.asReversed().take(30)
+            items(list.size) { i -> SessionCard(list[i], health.designMah) }
+        }
+
+        item {
+            SectionCard(title = "About these numbers") {
+                InfoRow("Estimate source", "", health.estimateSource, icon = Icons.Rounded.Science)
+                InfoRow("Design capacity", "", health.designSource, icon = Icons.Rounded.BatteryStd)
+                s?.let { InfoRow("Android status", healthLabel(it.health), icon = Icons.Rounded.Smartphone) }
             }
         }
     }
 }
 
+private fun verdict(pct: Float?): String = when {
+    pct == null -> "Measuring"
+    pct >= 90f -> "Excellent"
+    pct >= 80f -> "Good"
+    pct >= 70f -> "Fair"
+    else -> "Worn"
+}
+
 @Composable
-private fun SessionRow(session: ChargeSession) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+private fun HealthHero(health: HealthEstimate) {
+    val colors = MaterialTheme.colorScheme
+    val pct = health.healthPercent
+    val (accent, container) = when {
+        pct == null -> colors.outline to colors.surfaceContainerLow
+        pct >= 80f -> colors.primary to colors.primaryContainer
+        pct >= 70f -> colors.tertiary to colors.tertiaryContainer
+        else -> colors.error to colors.errorContainer
+    }
+    Card(
+        shape = HeroShape,
+        colors = CardDefaults.cardColors(containerColor = container),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(formatDateTime(session.start), style = MaterialTheme.typography.bodyLarge)
+        Column(
+            Modifier.fillMaxWidth().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            WavyArcGauge(
+                progress = (pct ?: 0f) / 100f,
+                color = accent,
+                track = accent.copy(alpha = 0.16f),
+                modifier = Modifier.fillMaxWidth(0.75f).aspectRatio(1f),
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            pct?.let { String.format(Locale.getDefault(), "%.0f", it) } ?: "—",
+                            fontSize = 76.sp, lineHeight = 76.sp,
+                            fontWeight = FontWeight.Black, letterSpacing = (-3).sp,
+                        )
+                        if (pct != null) {
+                            Text(
+                                "%", fontSize = 26.sp, fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 12.dp, start = 2.dp),
+                            )
+                        }
+                    }
+                    Text(verdict(pct), style = MaterialTheme.typography.titleLarge, color = accent)
+                }
+            }
             Text(
-                "${session.startLevel}% → ${session.endLevel}% · ${formatDuration(session.end - session.start)} · " +
-                    String.format(Locale.getDefault(), "+%,.0f mAh", session.mahAdded),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                health.confidence.label,
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center,
             )
-            Text(
-                session.method + if (session.maxTempC > 0f) String.format(Locale.getDefault(), " · peak %.1f °C", session.maxTempC) else "",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            ConfidenceDots(health.confidence, accent)
+        }
+    }
+}
+
+@Composable
+private fun ConfidenceDots(c: Confidence, accent: Color) {
+    val level = when (c) {
+        Confidence.NONE -> 0
+        Confidence.LOW -> 1
+        Confidence.MEDIUM -> 2
+        Confidence.HIGH -> 3
+    }
+    Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        repeat(3) { i ->
+            Box(
+                Modifier
+                    .width(28.dp)
+                    .height(6.dp)
+                    .background(if (i < level) accent else accent.copy(alpha = 0.2f), CircleShape)
             )
         }
-        Text(formatMah(session.capacityMah), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun CapacityCard(health: HealthEstimate, s: BatterySnapshot?) {
+    val colors = MaterialTheme.colorScheme
+    val design = health.designMah
+    val est = health.estimatedMah
+    SectionCard(title = "Capacity") {
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
+            CapacityBar("Design", design, design, colors.outline)
+            Spacer(Modifier.height(12.dp))
+            CapacityBar("Now", est, design ?: est, colors.primary)
+            if (design != null && est != null) {
+                val lost = design - est
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    if (lost > 0f) String.format(Locale.getDefault(), "%,.0f mAh lost to wear", lost)
+                    else "No measurable wear",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant,
+                )
+            }
+        }
+        s?.estimatedFullMah?.let {
+            InfoRow("Fuel gauge estimate", formatMah(it), "Charge counter ÷ current level")
+        }
+    }
+}
+
+@Composable
+private fun CapacityBar(label: String, value: Float?, max: Float?, color: Color) {
+    Column {
+        Row {
+            Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Text(formatMah(value), style = MaterialTheme.typography.titleMedium)
+        }
+        Spacer(Modifier.height(6.dp))
+        LinearProgressIndicator(
+            progress = { if (value != null && max != null && max > 0f) (value / max).coerceIn(0f, 1f) else 0f },
+            modifier = Modifier.fillMaxWidth().height(14.dp),
+            color = color,
+            trackColor = color.copy(alpha = 0.14f),
+            strokeCap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
+private fun MiniCard(label: String, value: String, sub: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = CardShape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        Column(Modifier.padding(18.dp)) {
+            IconBadge(Icons.Rounded.Autorenew, MaterialTheme.colorScheme.primary, size = 36.dp)
+            Spacer(Modifier.height(10.dp))
+            Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.headlineMedium)
+            Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun TrendCard(sessions: List<ChargeSession>, design: Float?) {
+    val colors = MaterialTheme.colorScheme
+    val pts = sessions.map { it.end to if (design != null && design > 0f) it.capacityMah / design * 100f else it.capacityMah }
+    val values = pts.map { it.second }
+    val lo = (values.min() - 5f).let { kotlin.math.floor(it / 5f) * 5f }
+    val hi = (values.max() + 5f).let { kotlin.math.ceil(it / 5f) * 5f }
+    var selected by remember { mutableStateOf<Long?>(null) }
+    val shownIdx = selected?.let { nearestIndex(pts, it) } ?: pts.lastIndex
+    val shown = pts[shownIdx]
+    val unit = if (design != null) "%" else " mAh"
+    SectionCard(title = "Health over time") {
+        Column(Modifier.padding(horizontal = 20.dp)) {
+            Text(
+                String.format(Locale.getDefault(), "%.0f", shown.second) + unit + " · " + formatDate(shown.first),
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.primary,
+            )
+            Spacer(Modifier.height(12.dp))
+            InteractiveChart(
+                points = pts,
+                startT = pts.first().first,
+                endT = pts.last().first,
+                minY = lo, maxY = hi,
+                color = colors.primary,
+                gapMs = Long.MAX_VALUE,
+                selectedT = selected,
+                onSelect = { selected = it },
+                modifier = Modifier.fillMaxWidth().height(140.dp),
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun Tip(n: String, text: String) {
+    Row(Modifier.padding(horizontal = 20.dp, vertical = 6.dp), verticalAlignment = Alignment.Top) {
+        Text(n, style = MaterialTheme.typography.titleMedium, modifier = Modifier.width(24.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SessionCard(session: ChargeSession, design: Float?) {
+    val colors = MaterialTheme.colorScheme
+    val q = chargeQuality(session)
+    val (qc, qon) = when (q) {
+        Quality.GENTLE -> colors.primaryContainer to colors.onPrimaryContainer
+        Quality.HOT, Quality.DEEP -> colors.errorContainer to colors.onErrorContainer
+        else -> colors.secondaryContainer to colors.onSecondaryContainer
+    }
+    Card(
+        shape = CardShape,
+        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(formatDateTime(session.start), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "${session.startLevel}% → ${session.endLevel}% in ${formatDuration(session.end - session.start)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurfaceVariant,
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(formatMah(session.capacityMah), style = MaterialTheme.typography.titleLarge)
+                    if (design != null && design > 0f) {
+                        Text(
+                            String.format(Locale.getDefault(), "%.0f%% health", session.capacityMah / design * 100f),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f))
+            Spacer(Modifier.height(12.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Pill(q.label, null, qc, qon)
+                Pill(String.format(Locale.getDefault(), "+%,.0f mAh", session.mahAdded), null, colors.surfaceContainerHigh, colors.onSurface)
+                if (session.peakPowerW > 0f) {
+                    Pill(String.format(Locale.getDefault(), "Peak %.1f W", session.peakPowerW), null, colors.surfaceContainerHigh, colors.onSurface)
+                }
+                if (session.maxTempC > 0f) {
+                    Pill(String.format(Locale.getDefault(), "Max %.1f °C", session.maxTempC), null, colors.surfaceContainerHigh, colors.onSurface)
+                }
+            }
+        }
     }
 }

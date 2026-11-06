@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.Build
+import android.os.PowerManager
 import androidx.core.content.ContextCompat
 import java.io.File
 import kotlin.math.abs
@@ -66,6 +67,8 @@ object BatteryReader {
             bm.computeChargeTimeRemaining().takeIf { it > 0 }
         } else null
 
+        val screenOn = (context.getSystemService(Context.POWER_SERVICE) as? PowerManager)?.isInteractive ?: true
+
         return BatterySnapshot(
             timestamp = System.currentTimeMillis(),
             level = level,
@@ -82,6 +85,7 @@ object BatteryReader {
             energyMwh = energyMwh,
             cycleCount = cycles,
             chargeTimeRemainingMs = remaining,
+            screenOn = screenOn,
             rawCurrent = rawNow.takeIf { isValid(it) },
             currentUnitUsed = if (unit == CurrentUnit.UA) "µA" else "mA",
         )

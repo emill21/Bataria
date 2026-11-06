@@ -61,3 +61,15 @@ fun formatDuration(ms: Long): String {
 
 fun formatDateTime(t: Long): String =
     SimpleDateFormat("EEE d MMM, HH:mm", Locale.getDefault()).format(Date(t))
+
+fun formatClock(t: Long): String =
+    SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(t))
+
+fun formatDayClock(t: Long): String =
+    SimpleDateFormat("EEE HH:mm", Locale.getDefault()).format(Date(t))
+
+fun formatDate(t: Long): String =
+    SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(t))
+
+fun formatRate(pctPerHour: Float?): String =
+    pctPerHour?.let { String.format(Locale.getDefault(), "%.1f%%/h", it) } ?: "—"
