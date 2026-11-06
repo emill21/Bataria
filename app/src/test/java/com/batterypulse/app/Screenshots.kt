@@ -4,10 +4,9 @@ import android.graphics.Bitmap
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onRoot
+import android.graphics.Canvas
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.batterypulse.app.data.Appearance
 import com.batterypulse.app.ui.AppScaffold
@@ -32,7 +31,7 @@ import java.io.FileOutputStream
 class Screenshots {
 
     @get:Rule
-    val rule = createComposeRule()
+    val rule = createAndroidComposeRule<ComponentActivity>()
 
     private fun shot(name: String, dark: Boolean, settleMs: Long = 3_000, content: @Composable () -> Unit) {
         rule.mainClock.autoAdvance = false
@@ -42,7 +41,9 @@ class Screenshots {
             }
         }
         rule.mainClock.advanceTimeBy(settleMs)
-        val bmp = rule.onRoot().captureToImage().asAndroidBitmap()
+        val view = rule.activity.window.decorView
+        val bmp = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        view.draw(Canvas(bmp))
         val dir = File("build/screenshots").apply { mkdirs() }
         FileOutputStream(File(dir, "$name.png")).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
