@@ -180,6 +180,11 @@ fun FloatingNavBar(tab: Tab, onTab: (Tab) -> Unit) {
     Box(
         Modifier
             .fillMaxWidth()
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    listOf(colors.surface.copy(alpha = 0f), colors.surface.copy(alpha = 0.72f))
+                )
+            )
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center,
