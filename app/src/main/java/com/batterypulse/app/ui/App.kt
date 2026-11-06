@@ -1,6 +1,10 @@
 package com.batterypulse.app.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -31,10 +35,12 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.HealthAndSafety
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Timeline
+import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.HealthAndSafety
 import androidx.compose.material.icons.rounded.Settings
@@ -74,6 +80,7 @@ enum class Tab(val label: String, val title: String, val icon: ImageVector, val 
     Now("Now", "Battery", Icons.Outlined.BatteryChargingFull, Icons.Rounded.BatteryChargingFull),
     Health("Health", "Health", Icons.Outlined.HealthAndSafety, Icons.Rounded.HealthAndSafety),
     History("History", "History", Icons.Outlined.Timeline, Icons.Rounded.Timeline),
+    Apps("Apps", "App usage", Icons.Outlined.Apps, Icons.Rounded.Apps),
     Settings("Settings", "Settings", Icons.Outlined.Settings, Icons.Rounded.Settings),
 }
 
@@ -105,6 +112,7 @@ fun BatteryPulseApp(onReplayTour: () -> Unit = {}) {
 
     val appearance by BatteryMonitor.appearance.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var showTester by rememberSaveable { mutableStateOf(false) }
     val releases = remember { Changelog.load(context) }
     var showWhatsNew by remember {
         mutableStateOf(BatteryMonitor.prefs.lastSeenVersion in 1 until BuildConfig.VERSION_CODE)
@@ -115,6 +123,7 @@ fun BatteryPulseApp(onReplayTour: () -> Unit = {}) {
             showWhatsNew = false
         }
     }
+    Box(Modifier.fillMaxSize()) {
     AppScaffold(tab = tab, background = appearance.background, onTab = { t ->
         if (t != tab) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         tab = t
@@ -132,12 +141,23 @@ fun BatteryPulseApp(onReplayTour: () -> Unit = {}) {
                     s = snapshot, recent = recent, health = health, time = time, live = live,
                     history = history, monitoring = monitoring, padding = padding,
                     onOpenHealth = { tab = Tab.Health },
+                    onOpenCharger = { showTester = true },
                 )
+                Tab.Apps -> AppsScreen(history, health.estimatedMah ?: health.designMah, padding)
                 Tab.Health -> HealthScreen(snapshot, health, sessions, padding)
                 Tab.History -> HistoryScreen(history, padding)
                 Tab.Settings -> SettingsScreen(snapshot, monitoring, padding, onReplayTour)
             }
         }
+    }
+    AnimatedVisibility(
+        visible = showTester,
+        enter = slideInVertically(tween(380)) { it } + fadeIn(),
+        exit = slideOutVertically(tween(300)) { it } + fadeOut(),
+    ) {
+        BackHandler { showTester = false }
+        ChargerTesterScreen(live = snapshot, onClose = { showTester = false })
+    }
     }
 }
 
@@ -220,7 +240,7 @@ private fun NavPill(t: Tab, selected: Boolean, onClick: () -> Unit) {
             .clip(CircleShape)
             .background(bg)
             .clickable(interactionSource = interaction, indication = ripple(), onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
             .animateContentSize(spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMediumLow)),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -11,6 +11,16 @@ import com.batterypulse.app.ui.AppScaffold
 import com.batterypulse.app.ui.HealthScreen
 import com.batterypulse.app.ui.HistoryScreen
 import com.batterypulse.app.ui.NowScreen
+import com.batterypulse.app.ui.AppsContent
+import com.batterypulse.app.ui.ChargerTesterScreen
+import com.batterypulse.app.ui.TestState
+import com.batterypulse.app.data.AppDrain
+import com.batterypulse.app.data.ChargerResult
+import com.batterypulse.app.data.ChargerResults
+import com.batterypulse.app.data.DrainReport
+import com.batterypulse.app.widget.chartBitmap
+import com.batterypulse.app.widget.ringBitmap
+import androidx.test.core.app.ApplicationProvider
 import com.batterypulse.app.ui.OnboardingScreen
 import com.batterypulse.app.ui.SettingsScreen
 import com.batterypulse.app.ui.Tab
@@ -138,5 +148,60 @@ class Screenshots {
     @Config(qualifiers = "w400dp-h860dp-xhdpi")
     fun tourDone() = shot("11_tour_done", dark = false, accent = rose, background = "bubbles") { bg ->
         OnboardingScreen(Appearance("light", rose, false, bg), onFinish = {}, initialPage = 6)
+    }
+
+    private val fakeReport = run {
+        val apps = listOf(
+            "YouTube" to 612f, "Instagram" to 431f, "Chrome" to 288f, "Spotify" to 164f,
+            "Google Maps" to 139f, "WhatsApp" to 92f, "Gmail" to 41f,
+        )
+        val total = apps.sumOf { it.second.toDouble() }.toFloat() + 240f + 120f
+        DrainReport(
+            apps = apps.mapIndexed { i, (n, m) ->
+                AppDrain("pkg.$i", n, null, ((m / 4.2f) * 60_000).toLong(), m, m / total)
+            },
+            screenOffMah = 240f, screenOffMs = 9 * 3_600_000L, otherMah = 120f, totalMah = total,
+        )
+    }
+
+    @Test
+    fun appsDark() = shot("12_apps_dark_ocean", dark = true, accent = ocean, background = "aurora") { bg ->
+        AppScaffold(Tab.Apps, {}, bg) { p ->
+            AppsContent(hasAccess = true, report = fakeReport, loading = false, range = 0, onRange = {}, onGrant = {}, padding = p)
+        }
+    }
+
+    @Test
+    fun appsPermission() = shot("13_apps_permission_light", dark = false, background = "particles") { bg ->
+        AppScaffold(Tab.Apps, {}, bg) { p ->
+            AppsContent(hasAccess = false, report = null, loading = false, range = 0, onRange = {}, onGrant = {}, padding = p)
+        }
+    }
+
+    @Test
+    fun chargerTester() {
+        val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
+        ChargerResults.init(ctx)
+        if (ChargerResults.results.value.isEmpty()) {
+            val now = FakeData.now
+            ChargerResults.add(ctx, ChargerResult(1, "Pixel 30W + USB-C cable", 24.3f, 27.9f, 34, 33f, 1, now))
+            ChargerResults.add(ctx, ChargerResult(2, "Car charger", 9.6f, 11.2f, 41, 31f, 1, now - 86_400_000))
+            ChargerResults.add(ctx, ChargerResult(3, "Laptop USB port", 4.1f, 4.6f, 52, 30f, 2, now - 2 * 86_400_000))
+        }
+        shot("14_charger_tester_dark", dark = true, accent = teal, background = "rings") { _ ->
+            ChargerTesterScreen(
+                live = FakeData.snapshot(true), onClose = {},
+                initialState = TestState.Done(18.7f, 23.4f, 46, 33.8f, 1),
+            )
+        }
+    }
+
+    @Test
+    fun widgetArt() {
+        val dir = File("build/screenshots").apply { mkdirs() }
+        val ring = ringBitmap(72, 0xFF2B6A3F.toInt(), 0x3C2B6A3F)
+        FileOutputStream(File(dir, "15_widget_ring_art.png")).use { ring.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        val chart = chartBitmap(FakeData.history, FakeData.now, 0xFF2B6A3F.toInt())
+        FileOutputStream(File(dir, "16_widget_chart_art.png")).use { chart.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 }

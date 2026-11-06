@@ -1,5 +1,16 @@
 [
   {
+    "version": "3.2",
+    "date": "2026-11-06",
+    "title": "App drain, charger tester and new widgets",
+    "items": [
+      "New Apps tab: see which apps used the most battery today, in the last 24 hours or over a week (needs Usage access, stays on your phone)",
+      "Charger tester: measure any charger and cable in 30 seconds, rate it, and compare all your chargers side by side",
+      "Two new widgets: Battery ring (small circular gauge) and Battery chart (level, time left and the last 24 hours)",
+      "Floating navigation now fits five tabs"
+    ]
+  },
+  {
     "version": "3.1",
     "date": "2026-11-05",
     "title": "Welcome tour, Active apps and changelogs",

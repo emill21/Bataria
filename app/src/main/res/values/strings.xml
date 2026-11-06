@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">Battery Pulse</string>
     <string name="widget_description">Battery level, current, temperature and health</string>
+    <string name="widget_stats_name">Battery stats</string>
+    <string name="widget_ring_name">Battery ring</string>
+    <string name="widget_ring_description">Your battery level in a circular gauge</string>
+    <string name="widget_chart_name">Battery chart</string>
+    <string name="widget_chart_description">Level, time left and the last 24 hours</string>
 </resources>

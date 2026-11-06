@@ -76,6 +76,7 @@ fun NowScreen(
     monitoring: Boolean,
     padding: PaddingValues,
     onOpenHealth: () -> Unit,
+    onOpenCharger: () -> Unit = {},
 ) {
     if (s == null) {
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -190,6 +191,32 @@ fun NowScreen(
         }
 
         animatedItem(3) { UsageCard(usage) }
+
+        animatedItem(4) {
+            val testerInteraction = remember { MutableInteractionSource() }
+            Card(
+                onClick = onOpenCharger,
+                interactionSource = testerInteraction,
+                shape = CardShape,
+                colors = CardDefaults.cardColors(containerColor = colors.surfaceContainer),
+                modifier = Modifier.fillMaxWidth().pressScale(testerInteraction),
+            ) {
+                Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    IconBadge(Icons.Rounded.Power, colors.tertiary, size = 48.dp)
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Charger tester", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (s.isPlugged) "Plugged in. Tap to measure this charger"
+                            else "Find out how fast your chargers really are",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onSurfaceVariant,
+                        )
+                    }
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = "Open charger tester")
+                }
+            }
+        }
 
         animatedItem(4) {
             val healthInteraction = remember { MutableInteractionSource() }

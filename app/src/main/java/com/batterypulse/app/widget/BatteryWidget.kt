@@ -61,9 +61,11 @@ class BatteryWidget : GlanceAppWidget() {
         private val WIDE = DpSize(250.dp, 110.dp)
 
         suspend fun refresh(context: Context) {
-            try {
-                BatteryWidget().updateAll(context)
-            } catch (e: Exception) {
+            for (w in listOf(BatteryWidget(), RingWidget(), ChartWidget())) {
+                try {
+                    w.updateAll(context)
+                } catch (e: Exception) {
+                }
             }
         }
     }
