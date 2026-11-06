@@ -8,7 +8,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.batterypulse.app.ui.OnboardingScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -36,8 +45,23 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose { }
             }
+            var onboarded by remember { mutableStateOf(BatteryMonitor.prefs.onboardingDone) }
             BatteryPulseTheme(appearance, dark) {
-                BatteryPulseApp()
+                AnimatedContent(
+                    targetState = onboarded,
+                    transitionSpec = { fadeIn(tween(500)).togetherWith(fadeOut(tween(300))) },
+                    label = "onboarding",
+                ) { done ->
+                    if (done) {
+                        BatteryPulseApp(onReplayTour = { onboarded = false })
+                    } else {
+                        OnboardingScreen(appearance, onFinish = {
+                            BatteryMonitor.prefs.onboardingDone = true
+                            BatteryMonitor.prefs.lastSeenVersion = BuildConfig.VERSION_CODE
+                            onboarded = true
+                        })
+                    }
+                }
             }
         }
     }

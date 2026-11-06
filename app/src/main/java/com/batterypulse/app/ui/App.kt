@@ -61,7 +61,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import com.batterypulse.app.BuildConfig
 import com.batterypulse.app.data.BatteryMonitor
+import com.batterypulse.app.data.Changelog
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -76,7 +79,7 @@ enum class Tab(val label: String, val title: String, val icon: ImageVector, val 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BatteryPulseApp() {
+fun BatteryPulseApp(onReplayTour: () -> Unit = {}) {
     var tab by rememberSaveable { mutableStateOf(Tab.Now) }
     val haptics = LocalHapticFeedback.current
 
@@ -101,6 +104,17 @@ fun BatteryPulseApp() {
     }
 
     val appearance by BatteryMonitor.appearance.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val releases = remember { Changelog.load(context) }
+    var showWhatsNew by remember {
+        mutableStateOf(BatteryMonitor.prefs.lastSeenVersion in 1 until BuildConfig.VERSION_CODE)
+    }
+    if (showWhatsNew && releases.isNotEmpty()) {
+        ChangelogSheet(releases, latestOnly = true) {
+            BatteryMonitor.prefs.lastSeenVersion = BuildConfig.VERSION_CODE
+            showWhatsNew = false
+        }
+    }
     AppScaffold(tab = tab, background = appearance.background, onTab = { t ->
         if (t != tab) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         tab = t
@@ -121,7 +135,7 @@ fun BatteryPulseApp() {
                 )
                 Tab.Health -> HealthScreen(snapshot, health, sessions, padding)
                 Tab.History -> HistoryScreen(history, padding)
-                Tab.Settings -> SettingsScreen(snapshot, monitoring, padding)
+                Tab.Settings -> SettingsScreen(snapshot, monitoring, padding, onReplayTour)
             }
         }
     }
@@ -172,7 +186,7 @@ fun FloatingNavBar(tab: Tab, onTab: (Tab) -> Unit) {
     ) {
         Surface(
             shape = CircleShape,
-            color = colors.surfaceContainerHigh.copy(alpha = 0.97f),
+            color = colors.surfaceContainerHigh.let { if (it.alpha > 0.82f) it.copy(alpha = 0.82f) else it },
             shadowElevation = 10.dp,
             border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)),
         ) {

@@ -11,6 +11,7 @@ import com.batterypulse.app.ui.AppScaffold
 import com.batterypulse.app.ui.HealthScreen
 import com.batterypulse.app.ui.HistoryScreen
 import com.batterypulse.app.ui.NowScreen
+import com.batterypulse.app.ui.OnboardingScreen
 import com.batterypulse.app.ui.SettingsScreen
 import com.batterypulse.app.ui.Tab
 import com.batterypulse.app.ui.theme.BatteryPulseTheme
@@ -113,5 +114,29 @@ class Screenshots {
     @Config(qualifiers = "w400dp-h2300dp-xhdpi")
     fun settingsLight() = shot("7_settings_light_amber_grid", dark = false, accent = amber, background = "grid") { bg ->
         AppScaffold(Tab.Settings, {}, bg) { p -> SettingsScreen(FakeData.snapshot(false), true, p) }
+    }
+
+    @Test
+    @Config(qualifiers = "w400dp-h860dp-xhdpi")
+    fun tourWelcome() = shot("8_tour_welcome", dark = true, accent = violet, background = "aurora") { bg ->
+        OnboardingScreen(Appearance("dark", violet, false, bg), onFinish = {}, initialPage = 0)
+    }
+
+    @Test
+    @Config(qualifiers = "w400dp-h860dp-xhdpi")
+    fun tourHealth() = shot("9_tour_health", dark = false, accent = ocean, background = "waves") { bg ->
+        OnboardingScreen(Appearance("light", ocean, false, bg), onFinish = {}, initialPage = 2)
+    }
+
+    @Test
+    @Config(qualifiers = "w400dp-h860dp-xhdpi")
+    fun tourMonitoring() = shot("10_tour_monitoring", dark = true, background = "space") { bg ->
+        OnboardingScreen(Appearance("dark", DEFAULT_SEED, false, bg), onFinish = {}, initialPage = 4)
+    }
+
+    @Test
+    @Config(qualifiers = "w400dp-h860dp-xhdpi")
+    fun tourDone() = shot("11_tour_done", dark = false, accent = rose, background = "bubbles") { bg ->
+        OnboardingScreen(Appearance("light", rose, false, bg), onFinish = {}, initialPage = 6)
     }
 }

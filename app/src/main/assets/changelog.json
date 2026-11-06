@@ -1,0 +1,58 @@
+[
+  {
+    "version": "3.1",
+    "date": "2026-11-05",
+    "title": "Welcome tour, Active apps and changelogs",
+    "items": [
+      "New first-launch tour: what the app does, how health is measured, and guided setup for your look, monitoring and alerts",
+      "Live monitoring now explains that it shows in Android's Active apps, with a shortcut to hide its notification while it keeps running",
+      "The floating bottom bar is now frosted glass like the rest of the app",
+      "What's new appears after each update, and the full changelog is in Settings › About",
+      "Replay the tour any time from Settings › About"
+    ]
+  },
+  {
+    "version": "3.0",
+    "date": "2026-11-05",
+    "title": "Animated backgrounds and custom colors",
+    "items": [
+      "7 animated backgrounds: Aurora, Bubbles, Constellation, Waves, Pulse, Grid and Space, with live previews",
+      "11 accent colors (or your wallpaper), each generating a full Material 3 palette",
+      "Frosted-glass cards, floating pill navigation bar, staggered card entrances and rolling numbers",
+      "The battery liquid tilts with your phone",
+      "Spelling: Battery optimization"
+    ]
+  },
+  {
+    "version": "2.1",
+    "date": "2026-11-05",
+    "title": "Quiet monitoring",
+    "items": [
+      "No more constant notification: monitoring runs quietly every 15 minutes by default",
+      "Optional live mode with live stats and instant alerts",
+      "\"Fuel gauge\" is now called \"battery\" throughout"
+    ]
+  },
+  {
+    "version": "2.0",
+    "date": "2026-11-05",
+    "title": "The big redesign",
+    "items": [
+      "Animated liquid battery gauge and expressive wavy health gauge",
+      "Home screen widget in Material You colors",
+      "Charge-limit, low-battery and temperature alerts",
+      "Live charging panel, screen-on vs screen-off drain, health trend and charge ratings",
+      "Interactive charts you can press and drag, plus pure-black dark mode"
+    ]
+  },
+  {
+    "version": "1.0",
+    "date": "2026-11-05",
+    "title": "First release",
+    "items": [
+      "Live current, power, voltage and temperature",
+      "Battery health measured from real charges",
+      "History charts and background monitoring"
+    ]
+  }
+]

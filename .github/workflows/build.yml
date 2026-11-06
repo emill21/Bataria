@@ -21,6 +21,13 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --stacktrace
+      - name: Release notes
+        run: |
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          jq -r '.[0] | "## \(.title)\n\n" + (.items | map("- " + .) | join("\n"))' app/src/main/assets/changelog.json > notes.md
+          printf '\n\n**Install:** download **BatteryPulse.apk** below and open it on your phone. Your data carries over.\n' >> notes.md
+          cat notes.md
       - name: Rename APK
         run: mv app/build/outputs/apk/release/app-release.apk BatteryPulse.apk
       - name: Publish release
@@ -28,8 +35,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: Battery Pulse build ${{ github.run_number }}
-          body: Install BatteryPulse.apk on your phone (allow installing unknown apps when asked).
+          name: Battery Pulse ${{ env.VERSION }} (build ${{ github.run_number }})
+          body_path: notes.md
           files: BatteryPulse.apk
           make_latest: true
       - uses: actions/upload-artifact@v4

@@ -47,6 +47,11 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Thermostat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -74,13 +79,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.batterypulse.app.BuildConfig
 import com.batterypulse.app.data.BatteryMonitor
+import com.batterypulse.app.data.Changelog
 import com.batterypulse.app.data.BatterySnapshot
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingValues) {
+fun SettingsScreen(
+    s: BatterySnapshot?,
+    monitoring: Boolean,
+    padding: PaddingValues,
+    onReplayTour: () -> Unit = {},
+) {
     val context = LocalContext.current
     val prefs = BatteryMonitor.prefs
     val appearance by BatteryMonitor.appearance.collectAsStateWithLifecycle()
@@ -92,6 +104,7 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
     var designOverride by remember { mutableStateOf(prefs.designCapacityOverride) }
     var showDesignDialog by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
+    var showChangelog by remember { mutableStateOf(false) }
 
     var chargeOn by remember { mutableStateOf(prefs.chargeAlarmOn) }
     var chargeLevel by remember { mutableFloatStateOf(prefs.chargeAlarmLevel.toFloat()) }
@@ -121,15 +134,29 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
                 if (monitoring) {
                     SwitchItem(
                         icon = Icons.Rounded.Speed,
-                        title = "Live notification",
-                        sub = if (live) "Live stats in your notifications, checked every few seconds, instant alerts."
-                        else "Off: no notification. Checks every 15 minutes; alerts may arrive a little late.",
+                        title = "Live monitoring",
+                        sub = if (live) "Runs continuously and appears in Android's Active apps. Checks every few seconds; instant alerts."
+                        else "Off: quiet mode, no notification. Checks every 15 minutes; alerts may arrive a little late.",
                         checked = live,
                         onChange = { on ->
                             if (on) withPermission { BatteryMonitor.setLiveNotification(context, true) }
                             else BatteryMonitor.setLiveNotification(context, false)
                         },
                     )
+                    if (live) {
+                        ListItem(
+                            colors = itemColors,
+                            modifier = Modifier.clickable { openMonitorChannelSettings(context) },
+                            leadingContent = { IconBadge(Icons.Rounded.VisibilityOff, MaterialTheme.colorScheme.primary, 36.dp) },
+                            headlineContent = { Text("Hide the notification") },
+                            supportingContent = {
+                                Text(
+                                    "Turn off the “Battery monitor” category. Monitoring keeps running and " +
+                                        "stays in Active apps (Android 13+)."
+                                )
+                            },
+                        )
+                    }
                 }
                 ListItem(
                     colors = itemColors,
@@ -297,15 +324,46 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
             }
         }
 
-        animatedItem(6) {
-            Text(
-                "Battery Pulse 3.0 · Reads Android's BatteryManager and battery values directly. Android " +
-                    "doesn't let regular apps read the battery's internal health figure, so health is " +
-                    "measured from your real charges against the design capacity.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            )
+        animatedItem(7) {
+            SectionCard(title = "About") {
+                InfoRow("Battery Pulse", "v${BuildConfig.VERSION_NAME}", "Build ${BuildConfig.VERSION_CODE}", icon = Icons.Rounded.Info)
+                ListItem(
+                    colors = itemColors,
+                    modifier = Modifier.clickable { showChangelog = true },
+                    leadingContent = { IconBadge(Icons.Rounded.AutoAwesome, MaterialTheme.colorScheme.primary, 36.dp) },
+                    headlineContent = { Text("What's new") },
+                    supportingContent = { Text("Changelog for every version") },
+                )
+                ListItem(
+                    colors = itemColors,
+                    modifier = Modifier.clickable { onReplayTour() },
+                    leadingContent = { IconBadge(Icons.Rounded.School, MaterialTheme.colorScheme.primary, 36.dp) },
+                    headlineContent = { Text("Replay welcome tour") },
+                    supportingContent = { Text("The intro and setup from first launch") },
+                )
+                ListItem(
+                    colors = itemColors,
+                    modifier = Modifier.clickable {
+                        try {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/emill21/BatteryPulse"))
+                            )
+                        } catch (e: Exception) {
+                        }
+                    },
+                    leadingContent = { IconBadge(Icons.Rounded.Code, MaterialTheme.colorScheme.primary, 36.dp) },
+                    headlineContent = { Text("Source & downloads") },
+                    supportingContent = { Text("github.com/emill21/BatteryPulse") },
+                )
+                Text(
+                    "Reads Android's BatteryManager and battery values directly. Android doesn't let regular " +
+                        "apps read the battery's internal health figure, so health is measured from your real " +
+                        "charges against the design capacity.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                )
+            }
         }
     }
 
@@ -341,6 +399,10 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
         )
     }
 
+    if (showChangelog) {
+        ChangelogSheet(Changelog.load(context), latestOnly = false) { showChangelog = false }
+    }
+
     if (showClearDialog) {
         AlertDialog(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 1f),
@@ -355,183 +417,24 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
     }
 }
 
-@Composable
-private fun SwitchItem(icon: ImageVector, title: String, sub: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    ListItem(
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        modifier = Modifier.clickable { onChange(!checked) },
-        leadingContent = { IconBadge(icon, MaterialTheme.colorScheme.primary, 36.dp) },
-        headlineContent = { Text(title) },
-        supportingContent = { Text(sub) },
-        trailingContent = { Switch(checked = checked, onCheckedChange = onChange) },
-    )
-}
 
-@Composable
-private fun LevelSlider(
-    value: Float,
-    range: ClosedFloatingPointRange<Float>,
-    steps: Int,
-    onChange: (Float) -> Unit,
-    onDone: () -> Unit,
-) {
-    Slider(
-        value = value,
-        onValueChange = onChange,
-        onValueChangeFinished = onDone,
-        valueRange = range,
-        steps = steps,
-        modifier = Modifier.padding(start = 72.dp, end = 20.dp),
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun Choice(options: List<Pair<String, String>>, selected: String, onSelect: (String) -> Unit) {
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-        options.forEachIndexed { i, (key, label) ->
-            SegmentedButton(
-                selected = key == selected,
-                onClick = { onSelect(key) },
-                shape = SegmentedButtonDefaults.itemShape(index = i, count = options.size),
-            ) { Text(label) }
+/** Opens Android's settings for the live-monitoring notification category. */
+fun openMonitorChannelSettings(context: android.content.Context) {
+    com.batterypulse.app.monitor.MonitorService.ensureChannel(context)
+    val intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        .putExtra(Settings.EXTRA_CHANNEL_ID, com.batterypulse.app.monitor.MonitorService.CHANNEL_ID)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    try {
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        try {
+            context.startActivity(
+                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        } catch (e2: Exception) {
         }
-    }
-}
-
-
-@Composable
-private fun FieldLabel(text: String, top: androidx.compose.ui.unit.Dp = 8.dp) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = top, bottom = 10.dp),
-    )
-}
-
-@Composable
-private fun AccentPicker(selected: Int, onSelect: (Int) -> Unit) {
-    val presets = AccentPresets.filter { it.second != 0 || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
-    val selectedKey = if (selected == 0 && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) DEFAULT_SEED else selected
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        items(presets.size) { i ->
-            val (name, seed) = presets[i]
-            AccentSwatch(name, seed, seed == selectedKey) { onSelect(seed) }
-        }
-    }
-}
-
-@Composable
-private fun AccentSwatch(name: String, seed: Int, selected: Boolean, onClick: () -> Unit) {
-    val context = LocalContext.current
-    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.4f
-    val scheme = remember(seed, dark) { baseScheme(context, seed, dark) }
-    val ring by animateColorAsState(
-        if (selected) MaterialTheme.colorScheme.onSurface else Color.Transparent, label = "ring",
-    )
-    val interaction = remember { MutableInteractionSource() }
-    Column(
-        Modifier
-            .width(68.dp)
-            .pressScale(interaction, 0.9f)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            Modifier
-                .size(60.dp)
-                .border(2.5.dp, ring, CircleShape)
-                .padding(5.dp)
-                .clip(CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Canvas(Modifier.fillMaxSize()) {
-                drawArc(scheme.primary, 180f, 180f, useCenter = true)
-                drawArc(scheme.primaryContainer, 90f, 90f, useCenter = true)
-                drawArc(scheme.tertiaryContainer, 0f, 90f, useCenter = true)
-            }
-            if (seed == 0) {
-                Icon(
-                    Icons.Rounded.Wallpaper, contentDescription = null, tint = scheme.onPrimary,
-                    modifier = Modifier.size(20.dp),
-                )
-            } else if (selected) {
-                Icon(
-                    Icons.Rounded.Check, contentDescription = null, tint = scheme.onPrimary,
-                    modifier = Modifier.size(22.dp),
-                )
-            }
-        }
-        Text(
-            name,
-            style = MaterialTheme.typography.labelMedium,
-            maxLines = 1,
-            modifier = Modifier.padding(top = 6.dp),
-        )
-    }
-}
-
-@Composable
-private fun BackgroundPicker(selected: String, onSelect: (String) -> Unit) {
-    val styles = BackgroundStyle.entries
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        items(styles.size) { i ->
-            val st = styles[i]
-            BackgroundTile(st, st.key == selected) { onSelect(st.key) }
-        }
-    }
-}
-
-@Composable
-private fun BackgroundTile(style: BackgroundStyle, selected: Boolean, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(22.dp)
-    val borderColor by animateColorAsState(if (selected) colors.primary else colors.outlineVariant, label = "tileBorder")
-    val interaction = remember { MutableInteractionSource() }
-    Column(
-        Modifier
-            .width(96.dp)
-            .pressScale(interaction, 0.92f)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            Modifier
-                .width(96.dp)
-                .height(132.dp)
-                .clip(shape)
-                .background(colors.surface)
-                .border(if (selected) 3.dp else 1.dp, borderColor, shape),
-        ) {
-            AnimatedBackground(style.key, Modifier.fillMaxSize(), preview = true)
-            if (style == BackgroundStyle.NONE) {
-                Icon(
-                    Icons.Rounded.Block, contentDescription = null,
-                    tint = colors.onSurfaceVariant,
-                    modifier = Modifier.align(Alignment.Center).size(28.dp),
-                )
-            }
-            if (selected) {
-                Icon(
-                    Icons.Rounded.CheckCircle, contentDescription = "Selected",
-                    tint = colors.primary,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(22.dp),
-                )
-            }
-        }
-        Text(
-            style.label,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (selected) colors.primary else colors.onSurface,
-            maxLines = 1,
-            modifier = Modifier.padding(top = 6.dp),
-        )
     }
 }

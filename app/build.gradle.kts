@@ -12,8 +12,8 @@ android {
         applicationId = "com.batterypulse.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "3.0"
+        versionCode = 5
+        versionName = "3.1"
     }
 
     buildTypes {
@@ -39,6 +39,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     testOptions {
         unitTests {
@@ -70,6 +71,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.compose.foundation:foundation")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 

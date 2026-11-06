@@ -76,6 +76,10 @@ class Prefs(context: Context) {
         remove("cal_votes_normal"); remove("cal_votes_inverted")
     }
 
+    // ---- First run & updates ----
+    var onboardingDone by bool("onboarding_done", false)
+    var lastSeenVersion by int("last_seen_version", 0)
+
     // ---- Appearance ----
     /** "system" | "light" | "dark" */
     var themeMode by string("theme_mode", "system")

@@ -50,7 +50,7 @@ class MonitorService : Service() {
     override fun onCreate() {
         super.onCreate()
         BatteryMonitor.init(this)
-        ensureChannel()
+        ensureChannel(this)
         val first = BatteryMonitor.sample()
         ServiceCompat.startForeground(
             this, NOTIFICATION_ID, buildNotification(first),
@@ -97,18 +97,6 @@ class MonitorService : Service() {
         }
     }
 
-    private fun ensureChannel() {
-        val nm = getSystemService(NotificationManager::class.java) ?: return
-        if (nm.getNotificationChannel(CHANNEL_ID) == null) {
-            nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Battery monitor", NotificationManager.IMPORTANCE_LOW).apply {
-                    description = "Live battery stats while background monitoring is on"
-                    setShowBadge(false)
-                }
-            )
-        }
-    }
-
     private fun buildNotification(s: BatterySnapshot): Notification {
         val open = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java),
@@ -134,10 +122,22 @@ class MonitorService : Service() {
     }
 
     companion object {
-        private const val CHANNEL_ID = "monitor"
+        const val CHANNEL_ID = "monitor"
         private const val NOTIFICATION_ID = 42
         private const val SAMPLE_INTERVAL_MS = 10_000L
         private const val WIDGET_INTERVAL_MS = 5 * 60_000L
+
+        fun ensureChannel(context: Context) {
+            val nm = context.getSystemService(NotificationManager::class.java) ?: return
+            if (nm.getNotificationChannel(CHANNEL_ID) == null) {
+                nm.createNotificationChannel(
+                    NotificationChannel(CHANNEL_ID, "Battery monitor", NotificationManager.IMPORTANCE_LOW).apply {
+                        description = "Live battery stats while live monitoring is on. Turn off to hide; monitoring keeps running."
+                        setShowBadge(false)
+                    }
+                )
+            }
+        }
 
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, MonitorService::class.java))
