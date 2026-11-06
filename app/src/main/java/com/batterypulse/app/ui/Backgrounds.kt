@@ -80,19 +80,21 @@ fun AnimatedBackground(style: String, modifier: Modifier = Modifier, preview: Bo
     val tertiary = colors.tertiary
     val secondary = colors.secondary
     val ink = colors.onSurface
+    val pastel = listOf(colors.inversePrimary, colors.tertiaryContainer, colors.primaryContainer, colors.tertiary)
     val time = rememberAnimationTime()
     val seeds = remember(s) { Seeds(140, s.ordinal * 31 + 7) }
-    val k = if (dark) 1f else 0.8f
+    val k = if (dark) 1f else 1.15f
 
     Canvas(modifier) {
         val t = time.floatValue
         when (s) {
-            BackgroundStyle.AURORA -> aurora(t, listOf(primary, tertiary, secondary, primary), 0.36f * k)
+            BackgroundStyle.AURORA -> if (dark) aurora(t, listOf(primary, tertiary, secondary, primary), 0.36f)
+            else aurora(t, pastel, 0.7f)
             BackgroundStyle.BUBBLES -> bubbles(t, seeds, primary, tertiary, k, preview)
             BackgroundStyle.CONSTELLATION -> constellation(t, seeds, primary, tertiary, k, preview)
             BackgroundStyle.WAVES -> waves(t, listOf(primary, tertiary, secondary, primary), k)
             BackgroundStyle.PULSE -> pulse(t, primary, tertiary, k)
-            BackgroundStyle.GRID -> grid(t, primary, tertiary, k, preview)
+            BackgroundStyle.GRID -> grid(t, primary, tertiary, if (dark) 1f else 0.6f, preview)
             BackgroundStyle.SPACE -> space(t, seeds, if (dark) ink else primary, primary, tertiary, k, preview)
             BackgroundStyle.NONE -> Unit
         }

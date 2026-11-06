@@ -240,7 +240,11 @@ fun GradientCard(
             .fillMaxWidth()
             .clip(shape)
             .background(Brush.verticalGradient(listOf(top, bottom)))
-    ) { content() }
+    ) {
+        androidx.compose.runtime.CompositionLocalProvider(
+            androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onSurface,
+        ) { content() }
+    }
 }
 
 data class HeroStat(val icon: ImageVector, val label: String, val value: String)

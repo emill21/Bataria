@@ -142,6 +142,7 @@ fun AppScaffold(
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             topBar = {
                 LargeTopAppBar(
                     title = { Text(tab.title, style = MaterialTheme.typography.headlineLarge) },
@@ -171,7 +172,7 @@ fun FloatingNavBar(tab: Tab, onTab: (Tab) -> Unit) {
     ) {
         Surface(
             shape = CircleShape,
-            color = colors.surfaceContainerHigh,
+            color = colors.surfaceContainerHigh.copy(alpha = 0.97f),
             shadowElevation = 10.dp,
             border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)),
         ) {

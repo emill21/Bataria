@@ -450,10 +450,9 @@ private fun AccentSwatch(name: String, seed: Int, selected: Boolean, onClick: ()
             contentAlignment = Alignment.Center,
         ) {
             Canvas(Modifier.fillMaxSize()) {
-                drawRect(scheme.primaryContainer)
                 drawArc(scheme.primary, 180f, 180f, useCenter = true)
-                drawArc(scheme.tertiary, 90f, 90f, useCenter = true)
-                drawArc(scheme.secondary, 0f, 90f, useCenter = true)
+                drawArc(scheme.primaryContainer, 90f, 90f, useCenter = true)
+                drawArc(scheme.tertiaryContainer, 0f, 90f, useCenter = true)
             }
             if (seed == 0) {
                 Icon(

@@ -204,7 +204,7 @@ fun baseScheme(context: Context, accent: Int, dark: Boolean): ColorScheme = when
 
 /** Frosted surfaces so an animated background glows through cards and bars. */
 private fun ColorScheme.frosted(dark: Boolean): ColorScheme {
-    val a = if (dark) 0.70f else 0.78f
+    val a = if (dark) 0.72f else 0.84f
     return copy(
         surfaceContainerLowest = surfaceContainerLowest.copy(alpha = a),
         surfaceContainerLow = surfaceContainerLow.copy(alpha = a),
