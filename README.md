@@ -7,7 +7,8 @@ A Material You battery monitor for Android 8+ (dynamic wallpaper colors on Andro
 **History** – 6 h / 24 h / 3 d / 7 d interactive charts (press and drag to inspect) for level, current, temperature and voltage with charging periods shaded.
 **Alerts** – charge-limit (e.g. unplug at 80 %), low battery and high temperature notifications.
 **Widget** – Material You home-screen widget with level, current, temperature and health.
-**Settings** – theme (system/light/dark), dynamic color, pure-black OLED mode, design-capacity override, current unit/sign override with raw-reading diagnostics.
+**Look & feel** – 7 animated backgrounds (Aurora, Bubbles, Constellation, Waves, Pulse, Grid, Space) with live previews, 11 accent colors (or your wallpaper via Material You) that each generate a full Material 3 palette, frosted-glass cards, a floating pill navigation bar, staggered card entrances, rolling-digit numbers, and a liquid gauge that tilts with your phone.
+**Settings** – theme (system/light/dark), accent color, animated background, pure-black OLED mode, design-capacity override, current unit/sign override with raw-reading diagnostics.
 
 ## Build it
 
