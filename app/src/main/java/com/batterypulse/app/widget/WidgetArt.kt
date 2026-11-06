@@ -62,7 +62,7 @@ fun chartBitmap(history: List<Sample>, now: Long, color: Int, width: Int = 720, 
     }
     if (pts.size < 2) return bmp
     // bucket to ~90 points
-    val buckets = 90
+    val buckets = 48
     val w = (now - start).toDouble() / buckets
     val xs = ArrayList<Float>()
     val ys = ArrayList<Float>()

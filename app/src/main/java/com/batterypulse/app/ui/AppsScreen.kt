@@ -220,7 +220,7 @@ fun AppsContent(
 @Composable
 private fun slotColor(i: Int): Color {
     val c = MaterialTheme.colorScheme
-    return listOf(c.primary, c.tertiary, c.secondary, c.error, c.inversePrimary)[i % 5]
+    return listOf(c.primary, c.tertiary, c.error, c.secondary, c.onSurfaceVariant)[i % 5]
 }
 
 @Composable

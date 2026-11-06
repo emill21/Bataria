@@ -352,7 +352,7 @@ private fun SavedCharger(r: ChargerResult, best: Float, top: Boolean, onDelete: 
                 }
                 Text(
                     "${chargerRating(r.avgW)} · peak " + String.format(Locale.getDefault(), "%.1f W", r.peakW) +
-                        " · at ${r.level}% · ${formatDate(r.time)}",
+                        " · at ${r.level}%",
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant,
                 )
