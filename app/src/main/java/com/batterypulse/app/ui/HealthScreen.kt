@@ -226,7 +226,7 @@ private fun CapacityCard(health: HealthEstimate, s: BatterySnapshot?) {
             }
         }
         s?.estimatedFullMah?.let {
-            InfoRow("Fuel gauge estimate", formatMah(it), "Charge counter ÷ current level")
+            InfoRow("Battery estimate", formatMah(it), "Charge remaining ÷ current level")
         }
     }
 }

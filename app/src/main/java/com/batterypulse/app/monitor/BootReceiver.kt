@@ -14,7 +14,7 @@ class BootReceiver : BroadcastReceiver() {
         BatteryMonitor.init(context)
         if (BatteryMonitor.prefs.monitoringEnabled) {
             try {
-                MonitorService.start(context)
+                BatteryMonitor.applyMonitoring(context)
             } catch (e: Exception) {
                 // Background start can be refused on some OEM builds; the user can reopen the app.
             }

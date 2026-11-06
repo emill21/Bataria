@@ -47,7 +47,7 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
     val start = now - hours * 3_600_000L
     val pts = remember(history, hours) { history.filter { it.t >= start } }
     val stats = remember(pts) { computeUsage(pts) }
-    val chargingRanges = remember(pts) { ranges(pts, { it.t }) { it.charging } }
+    val chargingRanges = remember(pts) { ranges(pts, { it.t }, 35 * 60_000L) { it.charging } }
     val colors = MaterialTheme.colorScheme
 
     LazyColumn(
@@ -200,7 +200,7 @@ private fun ChartCard(
     val points = remember(samples, startT, endT) {
         downsample(samples.map { it.t to value(it) }, startT, endT)
     }
-    val gap = maxOf(10 * 60_000L, (endT - startT) / 140 * 3)
+    val gap = maxOf(35 * 60_000L, (endT - startT) / 140 * 3)
     val idx = cursor?.let { nearestIndex(points, it) } ?: points.lastIndex
     val shown = points.getOrNull(idx)
     Card(

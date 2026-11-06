@@ -57,6 +57,8 @@ class Prefs(context: Context) {
 
     // ---- Monitoring & calibration ----
     var monitoringEnabled by bool("monitoring", false)
+    /** Live mode: foreground service + notification. Off: quiet 15-minute checks. */
+    var liveNotification by bool("live_notification", false)
     /** "auto" | "ua" | "ma" */
     var currentUnit by string("current_unit", "auto")
     /** "auto" | "normal" | "inverted" */

@@ -22,6 +22,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        // Bring the background mode in line with settings (e.g. after updating from 2.0).
+        try {
+            BatteryMonitor.applyMonitoring(this)
+        } catch (e: Exception) {
+        }
         setContent {
             val appearance by BatteryMonitor.appearance.collectAsStateWithLifecycle()
             val dark = appearance.isDark(isSystemInDarkTheme())

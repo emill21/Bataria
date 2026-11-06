@@ -123,7 +123,7 @@ fun NowScreen(
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "Background monitoring records every charge, powers alerts and keeps the " +
-                                "widget live. It uses a tiny amount of battery.",
+                                "widget fresh. No notification needed, and it uses almost no battery.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant,
                         )
@@ -235,7 +235,7 @@ fun NowScreen(
                 InfoRow("Power source", pluggedLabel(s.plugged), icon = Icons.Rounded.Usb)
                 InfoRow(
                     "Charge remaining", formatMah(s.chargeCounterMah),
-                    "From the fuel gauge", icon = Icons.Rounded.Speed,
+                    "Reported by the battery", icon = Icons.Rounded.Speed,
                 )
                 s.energyMwh?.let {
                     InfoRow("Energy remaining", String.format(Locale.getDefault(), "%,.0f mWh", it), icon = Icons.Rounded.FlashOn)

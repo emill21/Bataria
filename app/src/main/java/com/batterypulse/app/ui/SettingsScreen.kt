@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Thermostat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,6 +61,7 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
     val context = LocalContext.current
     val prefs = BatteryMonitor.prefs
     val appearance by BatteryMonitor.appearance.collectAsStateWithLifecycle()
+    val live by BatteryMonitor.liveNotification.collectAsStateWithLifecycle()
     val withPermission = rememberWithNotificationPermission()
 
     var unit by remember { mutableStateOf(prefs.currentUnit) }
@@ -93,6 +95,19 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
                         else BatteryMonitor.setMonitoring(context, false)
                     },
                 )
+                if (monitoring) {
+                    SwitchItem(
+                        icon = Icons.Rounded.Speed,
+                        title = "Live notification",
+                        sub = if (live) "Live stats in your notifications, checked every few seconds, instant alerts."
+                        else "Off: no notification. Checks every 15 minutes; alerts may arrive a little late.",
+                        checked = live,
+                        onChange = { on ->
+                            if (on) withPermission { BatteryMonitor.setLiveNotification(context, true) }
+                            else BatteryMonitor.setLiveNotification(context, false)
+                        },
+                    )
+                }
                 ListItem(
                     colors = itemColors,
                     modifier = Modifier.clickable {
@@ -263,7 +278,7 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
 
         item {
             Text(
-                "Battery Pulse 2.0 · Reads Android's BatteryManager and fuel-gauge values directly. Android " +
+                "Battery Pulse 2.1 · Reads Android's BatteryManager and battery values directly. Android " +
                     "doesn't let regular apps read the battery's internal health figure, so health is " +
                     "measured from your real charges against the design capacity.",
                 style = MaterialTheme.typography.bodySmall,

@@ -31,8 +31,10 @@ The release APK is signed with a debug key so it installs straight away; use you
   during each charge of ≥15 % it records the charge-counter delta (falling back to integrating current) and
   divides by the % gained to get true full capacity. The median of the last five charges, compared to design
   capacity, gives health. Confidence goes Low (instant charge-counter estimate) → Medium (1–2 charges) → High
-  (3+ charges, or the kernel fuel gauge is readable).
-* **Design capacity** – read from the kernel fuel gauge if accessible, otherwise from the manufacturer's power
+  (3+ charges, or the battery reports its capacity directly).
+* **Design capacity** – read from the battery if accessible, otherwise from the manufacturer's power
   profile. If it shows "Unknown" or looks wrong, enter your phone's rated mAh in Settings.
-* **Background monitoring** runs as a low-priority foreground service (silent notification with live stats) and
-  restarts after reboot. On aggressive OEM skins, set the app's battery usage to "Unrestricted".
+* **Background monitoring** has two modes. By default it's quiet: no notification, a check every 15 minutes
+  (health stays accurate because each charge is measured from its start and end readings). Turn on
+  **Live notification** for live stats in the notification shade, checks every few seconds and instant alerts.
+  On aggressive OEM skins, set the app's battery usage to "Unrestricted".

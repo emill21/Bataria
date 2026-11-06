@@ -143,7 +143,7 @@ object BatteryReader {
 
     // ---- Capacity sources ----
 
-    /** Kernel fuel-gauge values; readable on some devices, blocked by SELinux on most. */
+    /** Kernel battery values; readable on some devices, blocked by SELinux on most. */
     fun readSysfsMah(name: String): Float? {
         val paths = listOf(
             "/sys/class/power_supply/battery/$name",

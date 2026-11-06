@@ -33,7 +33,7 @@ data class BatterySnapshot(
     val powerW: Float?
         get() = currentMa?.let { if (voltageMv > 0) it * voltageMv / 1_000_000f else null }
 
-    /** Full capacity implied by the fuel gauge's charge counter at the current level. */
+    /** Full capacity implied by the battery's charge counter at the current level. */
     val estimatedFullMah: Float?
         get() = chargeCounterMah?.takeIf { level >= 10 }?.let { it * 100f / level }
 }

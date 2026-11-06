@@ -3,6 +3,7 @@ package com.batterypulse.app.data
 import android.content.Context
 import com.batterypulse.app.monitor.Alerts
 import com.batterypulse.app.monitor.MonitorService
+import com.batterypulse.app.monitor.MonitorWorker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,6 +55,9 @@ object BatteryMonitor {
     private val _monitoring = MutableStateFlow(false)
     val monitoring: StateFlow<Boolean> = _monitoring.asStateFlow()
 
+    private val _liveNotification = MutableStateFlow(false)
+    val liveNotification: StateFlow<Boolean> = _liveNotification.asStateFlow()
+
     private val _appearance = MutableStateFlow(Appearance("system", true, false))
     val appearance: StateFlow<Appearance> = _appearance.asStateFlow()
 
@@ -80,6 +84,7 @@ object BatteryMonitor {
         if (prefs.trackingSince == 0L) prefs.trackingSince = System.currentTimeMillis()
         session = prefs.loadSession()
         _monitoring.value = prefs.monitoringEnabled
+        _liveNotification.value = prefs.liveNotification
         _appearance.value = Appearance(prefs.themeMode, prefs.dynamicColor, prefs.pureBlack)
         _history.value = loadHistory()
         lastHistoryAt = _history.value.lastOrNull()?.t ?: 0L
@@ -93,7 +98,32 @@ object BatteryMonitor {
     fun setMonitoring(context: Context, on: Boolean) {
         prefs.monitoringEnabled = on
         _monitoring.value = on
-        if (on) MonitorService.start(context) else MonitorService.stop(context)
+        applyMonitoring(context)
+    }
+
+    fun setLiveNotification(context: Context, on: Boolean) {
+        prefs.liveNotification = on
+        _liveNotification.value = on
+        applyMonitoring(context)
+    }
+
+    /** Starts whichever background mode the settings call for and stops the other. */
+    fun applyMonitoring(context: Context) {
+        val app = context.applicationContext
+        when {
+            !prefs.monitoringEnabled -> {
+                MonitorService.stop(app)
+                MonitorWorker.cancel(app)
+            }
+            prefs.liveNotification -> {
+                MonitorWorker.cancel(app)
+                MonitorService.start(context)
+            }
+            else -> {
+                MonitorService.stop(app)
+                MonitorWorker.schedule(app)
+            }
+        }
     }
 
     fun setAppearance(a: Appearance) {
@@ -245,7 +275,7 @@ object BatteryMonitor {
         val override = prefs.designCapacityOverride
         val result: Pair<Float?, String> = when {
             override > 0 -> override.toFloat() to "Set by you"
-            else -> BatteryReader.readSysfsMah("charge_full_design")?.let { it to "Battery fuel gauge" }
+            else -> BatteryReader.readSysfsMah("charge_full_design")?.let { it to "Reported by the battery" }
                 ?: BatteryReader.powerProfileCapacity(app)?.let { it to "Manufacturer power profile" }
                 ?: (null to "Unknown — set it in Settings")
         }
@@ -281,7 +311,7 @@ object BatteryMonitor {
         val confidence: Confidence
         when {
             sys != null -> {
-                est = sys; source = "Reported by the battery fuel gauge"; confidence = Confidence.HIGH
+                est = sys; source = "Reported by the battery"; confidence = Confidence.HIGH
             }
             median != null -> {
                 est = median

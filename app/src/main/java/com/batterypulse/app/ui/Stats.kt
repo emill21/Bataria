@@ -13,7 +13,7 @@ data class UsageStats(
     val avgTemp: Float?,
 )
 
-private const val MAX_GAP = 10 * 60_000L
+private const val MAX_GAP = 35 * 60_000L
 
 /** Discharge/charge rates split by screen state, from minute-by-minute history. */
 fun computeUsage(pts: List<Sample>): UsageStats {
