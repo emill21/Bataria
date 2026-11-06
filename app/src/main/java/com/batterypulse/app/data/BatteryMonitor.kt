@@ -58,7 +58,7 @@ object BatteryMonitor {
     private val _liveNotification = MutableStateFlow(false)
     val liveNotification: StateFlow<Boolean> = _liveNotification.asStateFlow()
 
-    private val _appearance = MutableStateFlow(Appearance("system", true, false))
+    private val _appearance = MutableStateFlow(Appearance())
     val appearance: StateFlow<Appearance> = _appearance.asStateFlow()
 
     private var session = SessionState()
@@ -85,7 +85,7 @@ object BatteryMonitor {
         session = prefs.loadSession()
         _monitoring.value = prefs.monitoringEnabled
         _liveNotification.value = prefs.liveNotification
-        _appearance.value = Appearance(prefs.themeMode, prefs.dynamicColor, prefs.pureBlack)
+        _appearance.value = Appearance(prefs.themeMode, prefs.accentColor, prefs.pureBlack, prefs.backgroundStyle)
         _history.value = loadHistory()
         lastHistoryAt = _history.value.lastOrNull()?.t ?: 0L
         _sessions.value = loadSessions()
@@ -128,8 +128,9 @@ object BatteryMonitor {
 
     fun setAppearance(a: Appearance) {
         prefs.themeMode = a.themeMode
-        prefs.dynamicColor = a.dynamicColor
+        prefs.accentColor = a.accent
         prefs.pureBlack = a.pureBlack
+        prefs.backgroundStyle = a.background
         _appearance.value = a
     }
 

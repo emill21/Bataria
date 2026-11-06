@@ -1,7 +1,9 @@
 package com.batterypulse.app.ui.theme
 
+import android.content.Context
 import android.os.Build
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
@@ -10,6 +12,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -17,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.batterypulse.app.data.Appearance
+import com.google.android.material.color.utilities.CorePalette
+import com.google.android.material.color.utilities.TonalPalette
 
 // Fallback palette (Android 8–11, or dynamic color off), from a green seed.
 private val LightColors = lightColorScheme(
@@ -120,6 +125,95 @@ val AppShapes = Shapes(
     extraLarge = RoundedCornerShape(36.dp),
 )
 
+const val DEFAULT_SEED = 0xFF2E8B57.toInt()
+
+/** Accent presets shown in Settings. 0 = wallpaper (Material You). */
+val AccentPresets: List<Pair<String, Int>> = listOf(
+    "Wallpaper" to 0,
+    "Emerald" to DEFAULT_SEED,
+    "Teal" to 0xFF00897B.toInt(),
+    "Ocean" to 0xFF1E88E5.toInt(),
+    "Indigo" to 0xFF3F51B5.toInt(),
+    "Violet" to 0xFF7E57C2.toInt(),
+    "Rose" to 0xFFD81B60.toInt(),
+    "Crimson" to 0xFFE53935.toInt(),
+    "Sunset" to 0xFFF4511E.toInt(),
+    "Amber" to 0xFFFFB300.toInt(),
+    "Slate" to 0xFF607D8B.toInt(),
+)
+
+/** Full Material 3 color scheme generated from one seed color (tonal-spot style). */
+fun schemeFromSeed(seed: Int, dark: Boolean): ColorScheme {
+    val p = CorePalette.of(seed)
+    fun c(palette: TonalPalette, tone: Int) = Color(palette.tone(tone))
+    return if (!dark) lightColorScheme(
+        primary = c(p.a1, 40), onPrimary = c(p.a1, 100),
+        primaryContainer = c(p.a1, 90), onPrimaryContainer = c(p.a1, 10),
+        inversePrimary = c(p.a1, 80),
+        secondary = c(p.a2, 40), onSecondary = c(p.a2, 100),
+        secondaryContainer = c(p.a2, 90), onSecondaryContainer = c(p.a2, 10),
+        tertiary = c(p.a3, 40), onTertiary = c(p.a3, 100),
+        tertiaryContainer = c(p.a3, 90), onTertiaryContainer = c(p.a3, 10),
+        error = c(p.error, 40), onError = c(p.error, 100),
+        errorContainer = c(p.error, 90), onErrorContainer = c(p.error, 10),
+        background = c(p.n1, 98), onBackground = c(p.n1, 10),
+        surface = c(p.n1, 98), onSurface = c(p.n1, 10),
+        surfaceVariant = c(p.n2, 90), onSurfaceVariant = c(p.n2, 30),
+        surfaceTint = c(p.a1, 40),
+        inverseSurface = c(p.n1, 20), inverseOnSurface = c(p.n1, 95),
+        outline = c(p.n2, 50), outlineVariant = c(p.n2, 80),
+        scrim = Color.Black,
+        surfaceBright = c(p.n1, 98), surfaceDim = c(p.n1, 87),
+        surfaceContainerLowest = c(p.n1, 100), surfaceContainerLow = c(p.n1, 96),
+        surfaceContainer = c(p.n1, 94), surfaceContainerHigh = c(p.n1, 92),
+        surfaceContainerHighest = c(p.n1, 90),
+    ) else darkColorScheme(
+        primary = c(p.a1, 80), onPrimary = c(p.a1, 20),
+        primaryContainer = c(p.a1, 30), onPrimaryContainer = c(p.a1, 90),
+        inversePrimary = c(p.a1, 40),
+        secondary = c(p.a2, 80), onSecondary = c(p.a2, 20),
+        secondaryContainer = c(p.a2, 30), onSecondaryContainer = c(p.a2, 90),
+        tertiary = c(p.a3, 80), onTertiary = c(p.a3, 20),
+        tertiaryContainer = c(p.a3, 30), onTertiaryContainer = c(p.a3, 90),
+        error = c(p.error, 80), onError = c(p.error, 20),
+        errorContainer = c(p.error, 30), onErrorContainer = c(p.error, 90),
+        background = c(p.n1, 6), onBackground = c(p.n1, 90),
+        surface = c(p.n1, 6), onSurface = c(p.n1, 90),
+        surfaceVariant = c(p.n2, 30), onSurfaceVariant = c(p.n2, 80),
+        surfaceTint = c(p.a1, 80),
+        inverseSurface = c(p.n1, 90), inverseOnSurface = c(p.n1, 20),
+        outline = c(p.n2, 60), outlineVariant = c(p.n2, 30),
+        scrim = Color.Black,
+        surfaceBright = c(p.n1, 24), surfaceDim = c(p.n1, 6),
+        surfaceContainerLowest = c(p.n1, 4), surfaceContainerLow = c(p.n1, 10),
+        surfaceContainer = c(p.n1, 12), surfaceContainerHigh = c(p.n1, 17),
+        surfaceContainerHighest = c(p.n1, 22),
+    )
+}
+
+/** Base scheme for an accent choice (no pure-black / glass adjustments). */
+fun baseScheme(context: Context, accent: Int, dark: Boolean): ColorScheme = when {
+    accent == 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+        if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    else -> try {
+        schemeFromSeed(if (accent == 0) DEFAULT_SEED else accent, dark)
+    } catch (e: Throwable) {
+        if (dark) DarkColors else LightColors
+    }
+}
+
+/** Frosted surfaces so an animated background glows through cards and bars. */
+private fun ColorScheme.frosted(dark: Boolean): ColorScheme {
+    val a = if (dark) 0.70f else 0.78f
+    return copy(
+        surfaceContainerLowest = surfaceContainerLowest.copy(alpha = a),
+        surfaceContainerLow = surfaceContainerLow.copy(alpha = a),
+        surfaceContainer = surfaceContainer.copy(alpha = a + 0.04f),
+        surfaceContainerHigh = surfaceContainerHigh.copy(alpha = a + 0.08f),
+        surfaceContainerHighest = surfaceContainerHighest.copy(alpha = a + 0.12f),
+    )
+}
+
 @Composable
 fun BatteryPulseTheme(
     appearance: Appearance,
@@ -127,12 +221,7 @@ fun BatteryPulseTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    var colors = when {
-        appearance.dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-            if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        dark -> DarkColors
-        else -> LightColors
-    }
+    var colors = remember(appearance.accent, dark, context) { baseScheme(context, appearance.accent, dark) }
     if (dark && appearance.pureBlack) {
         colors = colors.copy(
             background = Color.Black,
@@ -145,5 +234,6 @@ fun BatteryPulseTheme(
             surfaceContainerHighest = Color(0xFF232323),
         )
     }
+    if (appearance.background != "none") colors = colors.frosted(dark)
     MaterialTheme(colorScheme = colors, typography = AppTypography, shapes = AppShapes, content = content)
 }

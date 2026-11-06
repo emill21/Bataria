@@ -59,9 +59,9 @@ fun HealthScreen(
         contentPadding = padding.withPage(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { HealthHero(health) }
+        animatedItem(0) { HealthHero(health) }
 
-        item { CapacityCard(health, s) }
+        animatedItem(1) { CapacityCard(health, s) }
 
         if (sessions.size >= 2) {
             item { TrendCard(sessions, health.designMah) }
@@ -77,7 +77,7 @@ fun HealthScreen(
             }
         }
 
-        item { SectionHeader(if (sessions.isEmpty()) "Charge history" else "Charge history · ${sessions.size}") }
+        animatedItem(2) { SectionHeader(if (sessions.isEmpty()) "Charge history" else "Charge history · ${sessions.size}") }
         if (sessions.isEmpty()) {
             item {
                 SectionCard {
@@ -91,10 +91,10 @@ fun HealthScreen(
             }
         } else {
             val list = sessions.asReversed().take(30)
-            items(list.size) { i -> SessionCard(list[i], health.designMah) }
+            items(list.size) { i -> Entrance(minOf(i + 4, 8)) { SessionCard(list[i], health.designMah) } }
         }
 
-        item {
+        animatedItem(3) {
             SectionCard(title = "About these numbers") {
                 InfoRow("Estimate source", "", health.estimateSource, icon = Icons.Rounded.Science)
                 InfoRow("Design capacity", "", health.designSource, icon = Icons.Rounded.BatteryStd)

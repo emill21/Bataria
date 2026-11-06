@@ -4,6 +4,31 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Wallpaper
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
+import com.batterypulse.app.ui.theme.AccentPresets
+import com.batterypulse.app.ui.theme.DEFAULT_SEED
+import com.batterypulse.app.ui.theme.baseScheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,11 +42,9 @@ import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.BatterySaver
 import androidx.compose.material.icons.rounded.Contrast
-import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Thermostat
@@ -83,7 +106,7 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
         contentPadding = padding.withPage(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
+        animatedItem(0) {
             SectionCard(title = "Monitoring") {
                 SwitchItem(
                     icon = Icons.Rounded.Notifications,
@@ -117,13 +140,43 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
                         }
                     },
                     leadingContent = { IconBadge(Icons.Rounded.BatterySaver, MaterialTheme.colorScheme.primary, 36.dp) },
-                    headlineContent = { Text("Battery optimisation") },
+                    headlineContent = { Text("Battery optimization") },
                     supportingContent = { Text("If monitoring stops in the background, set Battery Pulse to “Unrestricted”.") },
                 )
             }
         }
 
-        item {
+        animatedItem(1) {
+            SectionCard(title = "Appearance") {
+                Column(Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
+                    FieldLabel("Theme")
+                    Choice(
+                        options = listOf("system" to "System", "light" to "Light", "dark" to "Dark"),
+                        selected = appearance.themeMode,
+                    ) { BatteryMonitor.setAppearance(appearance.copy(themeMode = it)) }
+                    FieldLabel("Accent color", top = 20.dp)
+                }
+                AccentPicker(selected = appearance.accent) {
+                    BatteryMonitor.setAppearance(appearance.copy(accent = it))
+                }
+                Column(Modifier.padding(horizontal = 20.dp)) {
+                    FieldLabel("Animated background", top = 20.dp)
+                }
+                BackgroundPicker(selected = appearance.background) {
+                    BatteryMonitor.setAppearance(appearance.copy(background = it))
+                }
+                Spacer(Modifier.height(8.dp))
+                SwitchItem(
+                    icon = Icons.Rounded.Contrast,
+                    title = "Pure black",
+                    sub = "True black backgrounds in dark mode, ideal for OLED screens",
+                    checked = appearance.pureBlack,
+                    onChange = { BatteryMonitor.setAppearance(appearance.copy(pureBlack = it)) },
+                )
+            }
+        }
+
+        animatedItem(2) {
             SectionCard(title = "Alerts") {
                 if (!monitoring) {
                     Text(
@@ -178,39 +231,7 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
             }
         }
 
-        item {
-            SectionCard(title = "Appearance") {
-                Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                    Row { IconBadge(Icons.Rounded.DarkMode, MaterialTheme.colorScheme.primary, 36.dp) }
-                    Text(
-                        "Theme", style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 6.dp),
-                    )
-                    Choice(
-                        options = listOf("system" to "System", "light" to "Light", "dark" to "Dark"),
-                        selected = appearance.themeMode,
-                    ) { BatteryMonitor.setAppearance(appearance.copy(themeMode = it)) }
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    SwitchItem(
-                        icon = Icons.Rounded.Palette,
-                        title = "Dynamic color",
-                        sub = "Match your wallpaper (Material You)",
-                        checked = appearance.dynamicColor,
-                        onChange = { BatteryMonitor.setAppearance(appearance.copy(dynamicColor = it)) },
-                    )
-                }
-                SwitchItem(
-                    icon = Icons.Rounded.Contrast,
-                    title = "Pure black",
-                    sub = "True black backgrounds in dark mode, ideal for OLED screens",
-                    checked = appearance.pureBlack,
-                    onChange = { BatteryMonitor.setAppearance(appearance.copy(pureBlack = it)) },
-                )
-            }
-        }
-
-        item {
+        animatedItem(3) {
             SectionCard(title = "Capacity") {
                 val design = BatteryMonitor.design()
                 ListItem(
@@ -225,7 +246,7 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
             }
         }
 
-        item {
+        animatedItem(4) {
             SectionCard(title = "Current reading") {
                 Text(
                     "Manufacturers report current in different units and signs. Auto-detect handles most " +
@@ -264,7 +285,7 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
             }
         }
 
-        item {
+        animatedItem(5) {
             SectionCard(title = "Data") {
                 ListItem(
                     colors = itemColors,
@@ -276,9 +297,9 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
             }
         }
 
-        item {
+        animatedItem(6) {
             Text(
-                "Battery Pulse 2.1 · Reads Android's BatteryManager and battery values directly. Android " +
+                "Battery Pulse 3.0 · Reads Android's BatteryManager and battery values directly. Android " +
                     "doesn't let regular apps read the battery's internal health figure, so health is " +
                     "measured from your real charges against the design capacity.",
                 style = MaterialTheme.typography.bodySmall,
@@ -291,6 +312,7 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
     if (showDesignDialog) {
         var text by remember { mutableStateOf(if (designOverride > 0) designOverride.toString() else "") }
         AlertDialog(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 1f),
             onDismissRequest = { showDesignDialog = false },
             title = { Text("Design capacity") },
             text = {
@@ -321,6 +343,7 @@ fun SettingsScreen(s: BatterySnapshot?, monitoring: Boolean, padding: PaddingVal
 
     if (showClearDialog) {
         AlertDialog(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 1f),
             onDismissRequest = { showClearDialog = false },
             title = { Text("Clear all data?") },
             text = { Text("This deletes recorded history and all measured charges. Health will need to be re-measured.") },
@@ -373,5 +396,143 @@ private fun Choice(options: List<Pair<String, String>>, selected: String, onSele
                 shape = SegmentedButtonDefaults.itemShape(index = i, count = options.size),
             ) { Text(label) }
         }
+    }
+}
+
+
+@Composable
+private fun FieldLabel(text: String, top: androidx.compose.ui.unit.Dp = 8.dp) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = top, bottom = 10.dp),
+    )
+}
+
+@Composable
+private fun AccentPicker(selected: Int, onSelect: (Int) -> Unit) {
+    val presets = AccentPresets.filter { it.second != 0 || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
+    val selectedKey = if (selected == 0 && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) DEFAULT_SEED else selected
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        items(presets.size) { i ->
+            val (name, seed) = presets[i]
+            AccentSwatch(name, seed, seed == selectedKey) { onSelect(seed) }
+        }
+    }
+}
+
+@Composable
+private fun AccentSwatch(name: String, seed: Int, selected: Boolean, onClick: () -> Unit) {
+    val context = LocalContext.current
+    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.4f
+    val scheme = remember(seed, dark) { baseScheme(context, seed, dark) }
+    val ring by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.onSurface else Color.Transparent, label = "ring",
+    )
+    val interaction = remember { MutableInteractionSource() }
+    Column(
+        Modifier
+            .width(68.dp)
+            .pressScale(interaction, 0.9f)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier
+                .size(60.dp)
+                .border(2.5.dp, ring, CircleShape)
+                .padding(5.dp)
+                .clip(CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(Modifier.fillMaxSize()) {
+                drawRect(scheme.primaryContainer)
+                drawArc(scheme.primary, 180f, 180f, useCenter = true)
+                drawArc(scheme.tertiary, 90f, 90f, useCenter = true)
+                drawArc(scheme.secondary, 0f, 90f, useCenter = true)
+            }
+            if (seed == 0) {
+                Icon(
+                    Icons.Rounded.Wallpaper, contentDescription = null, tint = scheme.onPrimary,
+                    modifier = Modifier.size(20.dp),
+                )
+            } else if (selected) {
+                Icon(
+                    Icons.Rounded.Check, contentDescription = null, tint = scheme.onPrimary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        }
+        Text(
+            name,
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 1,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun BackgroundPicker(selected: String, onSelect: (String) -> Unit) {
+    val styles = BackgroundStyle.entries
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        items(styles.size) { i ->
+            val st = styles[i]
+            BackgroundTile(st, st.key == selected) { onSelect(st.key) }
+        }
+    }
+}
+
+@Composable
+private fun BackgroundTile(style: BackgroundStyle, selected: Boolean, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(22.dp)
+    val borderColor by animateColorAsState(if (selected) colors.primary else colors.outlineVariant, label = "tileBorder")
+    val interaction = remember { MutableInteractionSource() }
+    Column(
+        Modifier
+            .width(96.dp)
+            .pressScale(interaction, 0.92f)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier
+                .width(96.dp)
+                .height(132.dp)
+                .clip(shape)
+                .background(colors.surface)
+                .border(if (selected) 3.dp else 1.dp, borderColor, shape),
+        ) {
+            AnimatedBackground(style.key, Modifier.fillMaxSize(), preview = true)
+            if (style == BackgroundStyle.NONE) {
+                Icon(
+                    Icons.Rounded.Block, contentDescription = null,
+                    tint = colors.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.Center).size(28.dp),
+                )
+            }
+            if (selected) {
+                Icon(
+                    Icons.Rounded.CheckCircle, contentDescription = "Selected",
+                    tint = colors.primary,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(22.dp),
+                )
+            }
+        }
+        Text(
+            style.label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (selected) colors.primary else colors.onSurface,
+            maxLines = 1,
+            modifier = Modifier.padding(top = 6.dp),
+        )
     }
 }

@@ -79,7 +79,9 @@ class Prefs(context: Context) {
     // ---- Appearance ----
     /** "system" | "light" | "dark" */
     var themeMode by string("theme_mode", "system")
-    var dynamicColor by bool("dynamic_color", true)
+    /** ARGB seed, or 0 for wallpaper colors. */
+    var accentColor by int("accent_color", 0)
+    var backgroundStyle by string("background_style", "aurora")
     var pureBlack by bool("pure_black", false)
 
     // ---- Alerts ----

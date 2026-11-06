@@ -100,7 +100,16 @@ data class HealthEstimate(
 
 data class TimeEstimate(val label: String, val millis: Long?)
 
-data class Appearance(val themeMode: String, val dynamicColor: Boolean, val pureBlack: Boolean) {
+/**
+ * [accent] is an ARGB seed color, or 0 to follow the wallpaper (Material You).
+ * [background] is a BackgroundStyle key such as "aurora" or "none".
+ */
+data class Appearance(
+    val themeMode: String = "system",
+    val accent: Int = 0,
+    val pureBlack: Boolean = false,
+    val background: String = "aurora",
+) {
     fun isDark(systemDark: Boolean) = when (themeMode) {
         "light" -> false
         "dark" -> true

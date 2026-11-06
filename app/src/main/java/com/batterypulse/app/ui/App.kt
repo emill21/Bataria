@@ -1,6 +1,29 @@
 package com.batterypulse.app.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Surface
+import androidx.compose.material3.ripple
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -20,8 +43,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -79,7 +100,8 @@ fun BatteryPulseApp() {
         }
     }
 
-    AppScaffold(tab = tab, onTab = { t ->
+    val appearance by BatteryMonitor.appearance.collectAsStateWithLifecycle()
+    AppScaffold(tab = tab, background = appearance.background, onTab = { t ->
         if (t != tab) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         tab = t
     }) { padding ->
@@ -108,33 +130,89 @@ fun BatteryPulseApp() {
 /** Shell shared by the app and the screenshot tests. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppScaffold(tab: Tab, onTab: (Tab) -> Unit, content: @Composable (PaddingValues) -> Unit) {
+fun AppScaffold(
+    tab: Tab,
+    onTab: (Tab) -> Unit,
+    background: String = "none",
+    content: @Composable (PaddingValues) -> Unit,
+) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surface,
-        topBar = {
-            LargeTopAppBar(
-                title = { Text(tab.title, style = MaterialTheme.typography.headlineLarge) },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-            )
-        },
-        bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+        AnimatedBackground(background, Modifier.fillMaxSize())
+        Scaffold(
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = Color.Transparent,
+            topBar = {
+                LargeTopAppBar(
+                    title = { Text(tab.title, style = MaterialTheme.typography.headlineLarge) },
+                    scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.largeTopAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
+                )
+            },
+            bottomBar = { FloatingNavBar(tab, onTab) },
+            content = content,
+        )
+    }
+}
+
+/** Floating pill navigation: the selected tab expands to show its label. */
+@Composable
+fun FloatingNavBar(tab: Tab, onTab: (Tab) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = colors.surfaceContainerHigh,
+            shadowElevation = 10.dp,
+            border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)),
+        ) {
+            Row(
+                Modifier.padding(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Tab.entries.forEach { t ->
-                    NavigationBarItem(
-                        selected = t == tab,
-                        onClick = { onTab(t) },
-                        icon = { Icon(if (t == tab) t.selectedIcon else t.icon, contentDescription = null) },
-                        label = { Text(t.label) },
-                    )
+                    NavPill(t, selected = t == tab, onClick = { onTab(t) })
                 }
             }
-        },
-        content = content,
-    )
+        }
+    }
+}
+
+@Composable
+private fun NavPill(t: Tab, selected: Boolean, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val bg by animateColorAsState(if (selected) colors.primary else Color.Transparent, tween(250), label = "navBg")
+    val fg by animateColorAsState(if (selected) colors.onPrimary else colors.onSurfaceVariant, tween(250), label = "navFg")
+    val interaction = remember { MutableInteractionSource() }
+    Row(
+        Modifier
+            .pressScale(interaction, 0.9f)
+            .clip(CircleShape)
+            .background(bg)
+            .clickable(interactionSource = interaction, indication = ripple(), onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .animateContentSize(spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMediumLow)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(if (selected) t.selectedIcon else t.icon, contentDescription = t.label, tint = fg)
+        if (selected) {
+            Text(
+                t.label,
+                color = fg,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+    }
 }

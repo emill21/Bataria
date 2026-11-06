@@ -48,7 +48,7 @@ private fun DrawScope.waterLine(fill: Float): Float {
     return center.y + r - fill * 2f * r
 }
 
-private fun DrawScope.wavePath(fill: Float, phase: Float, ampMul: Float, cycles: Float): Path {
+private fun DrawScope.wavePath(fill: Float, phase: Float, ampMul: Float, cycles: Float, slope: Float = 0f): Path {
     val y0 = waterLine(fill)
     // Calm the surface when nearly empty or full so it doesn't poke out of the circle.
     val edge = (minOf(fill, 1f - fill) * 8f).coerceIn(0.2f, 1f)
@@ -59,7 +59,7 @@ private fun DrawScope.wavePath(fill: Float, phase: Float, ampMul: Float, cycles:
     var x = 0f
     val step = 3.dp.toPx()
     while (x <= size.width + step) {
-        val y = y0 + sin(x / size.width * cycles * TWO_PI + phase) * amp
+        val y = y0 + slope * (x - center.x) + sin(x / size.width * cycles * TWO_PI + phase) * amp
         path.lineTo(x, y)
         x += step
     }
@@ -102,6 +102,7 @@ fun LiquidGauge(
         label = "bubbles",
     )
     val track = liquid.copy(alpha = 0.16f)
+    val tiltState = rememberLiquidTilt()
 
     Box(modifier, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
@@ -139,13 +140,14 @@ fun LiquidGauge(
             }
 
             // Glass bowl
+            val slope = tiltState.floatValue
             drawCircle(liquid.copy(alpha = 0.08f), radius = r)
             val circle = Path().apply { addOval(Rect(center, r)) }
             clipPath(circle) {
                 val top = waterLine(fill)
-                drawPath(wavePath(fill, phase * -1f + 2.2f, 0.75f, 1.7f), liquid.copy(alpha = 0.30f))
+                drawPath(wavePath(fill, phase * -1f + 2.2f, 0.75f, 1.7f, slope * 0.85f), liquid.copy(alpha = 0.30f))
                 drawPath(
-                    wavePath(fill, phase, 1f, 1.15f),
+                    wavePath(fill, phase, 1f, 1.15f, slope),
                     Brush.verticalGradient(
                         listOf(lerp(liquid, Color.White, 0.16f), liquid, lerp(liquid, Color.Black, 0.12f)),
                         startY = top,
@@ -159,7 +161,7 @@ fun LiquidGauge(
                         val prog = (bubbleT + offset) % 1f
                         val lane = ((i * 37) % 100) / 100f - 0.5f
                         val x = center.x + lane * r * 1.3f + sin(prog * 9f + i) * 4.dp.toPx()
-                        val y = bottom - prog * (bottom - top)
+                        val y = bottom - prog * (bottom - (top + slope * (x - center.x)))
                         val br = (2.5f + (i % 3) * 1.8f).dp.toPx()
                         drawCircle(onLiquid.copy(alpha = 0.40f * (1f - prog)), radius = br, center = Offset(x, y))
                         drawCircle(
@@ -169,7 +171,7 @@ fun LiquidGauge(
                     }
                 }
                 // Glossy highlight on the liquid only
-                clipPath(wavePath(fill, phase, 1f, 1.15f)) {
+                clipPath(wavePath(fill, phase, 1f, 1.15f, slope)) {
                     drawCircle(
                         Brush.radialGradient(
                             listOf(Color.White.copy(alpha = 0.24f), Color.White.copy(alpha = 0.0f)),
@@ -189,7 +191,7 @@ fun LiquidGauge(
                 .drawWithContent {
                     val r = liquidRadius()
                     val circle = Path().apply { addOval(Rect(center, r)) }
-                    val wave = wavePath(fill, phase, 1f, 1.15f)
+                    val wave = wavePath(fill, phase, 1f, 1.15f, tiltState.floatValue)
                     val clip = Path().apply { op(circle, wave, PathOperation.Intersect) }
                     clipPath(clip) { this@drawWithContent.drawContent() }
                 },

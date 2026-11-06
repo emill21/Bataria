@@ -54,7 +54,7 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
         contentPadding = padding.withPage(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
+        animatedItem(0) {
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 RANGES_H.forEachIndexed { i, h ->
                     SegmentedButton(
@@ -80,7 +80,7 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
             }
         }
 
-        item {
+        animatedItem(1) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 MiniStat("Drain", formatRate(stats.drainPerHour), Modifier.weight(1f))
                 MiniStat("Charge", stats.chargePerHour?.let { fmt("%.0f%%/h", it) } ?: "—", Modifier.weight(1f))
@@ -88,7 +88,7 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
             }
         }
 
-        item {
+        animatedItem(2) {
             Text(
                 "Press and drag on a chart to inspect it. Shaded areas are charging.",
                 style = MaterialTheme.typography.bodySmall,
@@ -97,7 +97,7 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
             )
         }
 
-        item {
+        animatedItem(3) {
             ChartCard(
                 title = "Battery level",
                 samples = pts,
@@ -110,7 +110,7 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
                 cursor = cursor, onCursor = { cursor = it },
             )
         }
-        item {
+        animatedItem(4) {
             val values = downsample(pts.map { it.t to it.currentMa }, start, now).map { it.second }
             val lo = floor(minOf(values.minOrNull() ?: -500f, 0f) / 500f) * 500f
             val hi = ceil(max(values.maxOrNull() ?: 500f, 0f) / 500f) * 500f
@@ -127,7 +127,7 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
                 cursor = cursor, onCursor = { cursor = it },
             )
         }
-        item {
+        animatedItem(5) {
             val temps = downsample(pts.map { it.t to it.tempC }, start, now).map { it.second }.filter { !it.isNaN() }
             val lo = floor((temps.minOrNull() ?: 20f) - 2f)
             val hi = ceil((temps.maxOrNull() ?: 40f) + 2f)
@@ -143,7 +143,7 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
                 cursor = cursor, onCursor = { cursor = it },
             )
         }
-        item {
+        animatedItem(6) {
             val volts = pts.map { it.voltageMv.toFloat() }.filter { it > 0f }
             val lo = floor(((volts.minOrNull() ?: 3500f) - 50f) / 100f) * 100f
             val hi = ceil(((volts.maxOrNull() ?: 4400f) + 50f) / 100f) * 100f

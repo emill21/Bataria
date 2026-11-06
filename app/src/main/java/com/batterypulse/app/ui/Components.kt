@@ -195,7 +195,7 @@ fun StatTile(
                 )
             }
             Spacer(Modifier.height(12.dp))
-            Text(value, style = MaterialTheme.typography.headlineSmall, maxLines = 1)
+            RollingText(value, style = MaterialTheme.typography.headlineSmall)
             if (sub != null) {
                 Text(
                     sub,
@@ -214,7 +214,7 @@ fun StatTile(
 @Composable
 fun BigNumber(value: String, unit: String, color: Color = Color.Unspecified) {
     Row(verticalAlignment = Alignment.Bottom) {
-        Text(value, style = MaterialTheme.typography.displaySmall, color = color)
+        RollingText(value, style = MaterialTheme.typography.displaySmall, color = color)
         Text(
             unit,
             style = MaterialTheme.typography.titleMedium,

@@ -1,11 +1,9 @@
 package com.batterypulse.app
 
 import android.graphics.Bitmap
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
 import android.graphics.Canvas
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.batterypulse.app.data.Appearance
@@ -16,6 +14,7 @@ import com.batterypulse.app.ui.NowScreen
 import com.batterypulse.app.ui.SettingsScreen
 import com.batterypulse.app.ui.Tab
 import com.batterypulse.app.ui.theme.BatteryPulseTheme
+import com.batterypulse.app.ui.theme.DEFAULT_SEED
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -33,11 +32,24 @@ class Screenshots {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
-    private fun shot(name: String, dark: Boolean, settleMs: Long = 3_000, content: @Composable () -> Unit) {
+    private val violet = 0xFF7E57C2.toInt()
+    private val ocean = 0xFF1E88E5.toInt()
+    private val rose = 0xFFD81B60.toInt()
+    private val amber = 0xFFFFB300.toInt()
+    private val teal = 0xFF00897B.toInt()
+
+    private fun shot(
+        name: String,
+        dark: Boolean,
+        accent: Int = DEFAULT_SEED,
+        background: String = "none",
+        settleMs: Long = 4_000,
+        content: @Composable (String) -> Unit,
+    ) {
         rule.mainClock.autoAdvance = false
         rule.setContent {
-            BatteryPulseTheme(Appearance(if (dark) "dark" else "light", false, false), dark) {
-                Surface(color = MaterialTheme.colorScheme.surface) { content() }
+            BatteryPulseTheme(Appearance(if (dark) "dark" else "light", accent, false, background), dark) {
+                content(background)
             }
         }
         rule.mainClock.advanceTimeBy(settleMs)
@@ -49,8 +61,8 @@ class Screenshots {
     }
 
     @Test
-    fun nowDischargingLight() = shot("1_now_discharging_light", dark = false) {
-        AppScaffold(Tab.Now, {}) { p ->
+    fun nowDischargingLight() = shot("1_now_light_aurora", dark = false, background = "aurora") { bg ->
+        AppScaffold(Tab.Now, {}, bg) { p ->
             NowScreen(
                 FakeData.snapshot(false), FakeData.recent(false), FakeData.health, FakeData.time, null,
                 FakeData.history, monitoring = true, padding = p, onOpenHealth = {},
@@ -59,41 +71,47 @@ class Screenshots {
     }
 
     @Test
-    fun nowChargingDark() = shot("2_now_charging_dark", dark = true) {
-        AppScaffold(Tab.Now, {}) { p ->
+    fun nowChargingDark() = shot("2_now_dark_violet_bubbles", dark = true, accent = violet, background = "bubbles") { bg ->
+        AppScaffold(Tab.Now, {}, bg) { p ->
             NowScreen(
                 FakeData.snapshot(true), FakeData.recent(true), FakeData.health, FakeData.chargeTime, FakeData.live,
-                FakeData.history, monitoring = false, padding = p, onOpenHealth = {},
+                FakeData.history, monitoring = true, padding = p, onOpenHealth = {},
             )
         }
     }
 
     @Test
-    fun healthLight() = shot("3_health_light", dark = false) {
-        AppScaffold(Tab.Health, {}) { p ->
+    fun healthLight() = shot("3_health_light_ocean_waves", dark = false, accent = ocean, background = "waves") { bg ->
+        AppScaffold(Tab.Health, {}, bg) { p ->
             HealthScreen(FakeData.snapshot(false), FakeData.health, FakeData.sessions, p)
         }
     }
 
     @Test
-    fun healthDark() = shot("4_health_dark", dark = true) {
-        AppScaffold(Tab.Health, {}) { p ->
+    fun healthDark() = shot("4_health_dark_rose_constellation", dark = true, accent = rose, background = "particles") { bg ->
+        AppScaffold(Tab.Health, {}, bg) { p ->
             HealthScreen(FakeData.snapshot(false), FakeData.health, FakeData.sessions, p)
         }
     }
 
     @Test
-    fun historyLight() = shot("5_history_light", dark = false) {
-        AppScaffold(Tab.History, {}) { p -> HistoryScreen(FakeData.history, p) }
+    fun historyDark() = shot("5_history_dark_space", dark = true, background = "space") { bg ->
+        AppScaffold(Tab.History, {}, bg) { p -> HistoryScreen(FakeData.history, p) }
     }
 
     @Test
-    fun historyDark() = shot("6_history_dark", dark = true) {
-        AppScaffold(Tab.History, {}) { p -> HistoryScreen(FakeData.history, p) }
+    fun nowDarkPulse() = shot("6_now_dark_teal_pulse", dark = true, accent = teal, background = "rings") { bg ->
+        AppScaffold(Tab.Now, {}, bg) { p ->
+            NowScreen(
+                FakeData.snapshot(false), FakeData.recent(false), FakeData.health, FakeData.time, null,
+                FakeData.history, monitoring = true, padding = p, onOpenHealth = {},
+            )
+        }
     }
 
     @Test
-    fun settingsLight() = shot("7_settings_light", dark = false) {
-        AppScaffold(Tab.Settings, {}) { p -> SettingsScreen(FakeData.snapshot(false), true, p) }
+    @Config(qualifiers = "w400dp-h2300dp-xhdpi")
+    fun settingsLight() = shot("7_settings_light_amber_grid", dark = false, accent = amber, background = "grid") { bg ->
+        AppScaffold(Tab.Settings, {}, bg) { p -> SettingsScreen(FakeData.snapshot(false), true, p) }
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -92,9 +93,9 @@ fun NowScreen(
         contentPadding = padding.withPage(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Hero(s, time) }
+        animatedItem(0) { Hero(s, time) }
 
-        item {
+        animatedItem(1) {
             AnimatedVisibility(
                 visible = s.isCharging && live != null,
                 enter = expandVertically() + fadeIn(),
@@ -136,7 +137,7 @@ fun NowScreen(
             }
         }
 
-        item {
+        animatedItem(2) {
             val hot = !s.temperatureC.isNaN() && s.temperatureC >= 40f
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -188,14 +189,16 @@ fun NowScreen(
             }
         }
 
-        item { UsageCard(usage) }
+        animatedItem(3) { UsageCard(usage) }
 
-        item {
+        animatedItem(4) {
+            val healthInteraction = remember { MutableInteractionSource() }
             Card(
                 onClick = onOpenHealth,
+                interactionSource = healthInteraction,
                 shape = CardShape,
                 colors = CardDefaults.cardColors(containerColor = colors.secondaryContainer),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().pressScale(healthInteraction),
             ) {
                 Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                     WavyArcGauge(
@@ -230,7 +233,7 @@ fun NowScreen(
             }
         }
 
-        item {
+        animatedItem(5) {
             SectionCard(title = "Details") {
                 InfoRow("Power source", pluggedLabel(s.plugged), icon = Icons.Rounded.Usb)
                 InfoRow(
@@ -319,7 +322,7 @@ private fun Hero(s: BatterySnapshot, time: TimeEstimate?) {
             Spacer(Modifier.height(22.dp))
             if (time != null) {
                 val main = time.millis?.let { formatDuration(it) } ?: time.label
-                Text(main, style = MaterialTheme.typography.displaySmall)
+                RollingText(main, style = MaterialTheme.typography.displaySmall)
                 if (time.millis != null) {
                     Text(time.label, style = MaterialTheme.typography.bodyLarge, color = colors.onSurfaceVariant)
                 }
