@@ -109,15 +109,15 @@ fun NowScreen(
                 Card(
                     shape = CardShape,
                     colors = CardDefaults.cardColors(
-                        containerColor = colors.tertiaryContainer,
-                        contentColor = colors.onTertiaryContainer,
+                        containerColor = colors.surfaceContainerHigh,
+                        contentColor = colors.onSurface,
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.NotificationsActive, contentDescription = null)
-                            Spacer(Modifier.width(12.dp))
+                            IconBadge(Icons.Rounded.NotificationsActive, colors.primary, size = 40.dp)
+                            Spacer(Modifier.width(14.dp))
                             Text("Unlock accurate health", style = MaterialTheme.typography.titleMedium)
                         }
                         Spacer(Modifier.height(8.dp))
@@ -125,8 +125,9 @@ fun NowScreen(
                             "Background monitoring records every charge, powers alerts and keeps the " +
                                 "widget live. It uses a tiny amount of battery.",
                             style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onSurfaceVariant,
                         )
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(14.dp))
                         Button(onClick = { withPermission { BatteryMonitor.setMonitoring(context, true) } }) {
                             Text("Turn on")
                         }

@@ -132,9 +132,9 @@ private fun HealthHero(health: HealthEstimate) {
                 color = accent,
                 track = accent.copy(alpha = 0.18f),
                 modifier = Modifier.fillMaxWidth(0.82f).aspectRatio(1f),
-                stroke = 11.dp,
-                amplitude = 3.dp,
-                wavelength = 44.dp,
+                stroke = 8.dp,
+                amplitude = 2.6.dp,
+                wavelength = 38.dp,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Estimated health", style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
