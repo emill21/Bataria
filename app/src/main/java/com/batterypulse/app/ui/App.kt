@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.HealthAndSafety
@@ -78,36 +79,10 @@ fun BatteryPulseApp() {
         }
     }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surface,
-        topBar = {
-            LargeTopAppBar(
-                title = { Text(tab.title, style = MaterialTheme.typography.headlineLarge) },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-            )
-        },
-        bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
-                Tab.entries.forEach { t ->
-                    NavigationBarItem(
-                        selected = t == tab,
-                        onClick = {
-                            if (t != tab) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            tab = t
-                        },
-                        icon = { Icon(if (t == tab) t.selectedIcon else t.icon, contentDescription = null) },
-                        label = { Text(t.label) },
-                    )
-                }
-            }
-        },
-    ) { padding ->
+    AppScaffold(tab = tab, onTab = { t ->
+        if (t != tab) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        tab = t
+    }) { padding ->
         AnimatedContent(
             targetState = tab,
             transitionSpec = {
@@ -128,4 +103,38 @@ fun BatteryPulseApp() {
             }
         }
     }
+}
+
+/** Shell shared by the app and the screenshot tests. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppScaffold(tab: Tab, onTab: (Tab) -> Unit, content: @Composable (PaddingValues) -> Unit) {
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.surface,
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(tab.title, style = MaterialTheme.typography.headlineLarge) },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+            )
+        },
+        bottomBar = {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+                Tab.entries.forEach { t ->
+                    NavigationBarItem(
+                        selected = t == tab,
+                        onClick = { onTab(t) },
+                        icon = { Icon(if (t == tab) t.selectedIcon else t.icon, contentDescription = null) },
+                        label = { Text(t.label) },
+                    )
+                }
+            }
+        },
+        content = content,
+    )
 }
