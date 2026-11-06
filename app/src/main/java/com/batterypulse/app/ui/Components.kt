@@ -5,7 +5,11 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +36,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -214,5 +222,60 @@ fun BigNumber(value: String, unit: String, color: Color = Color.Unspecified) {
             color = color,
             modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
         )
+    }
+}
+
+
+/** Card with a soft vertical tint, used for the hero sections. */
+@Composable
+fun GradientCard(
+    top: Color,
+    bottom: Color,
+    modifier: Modifier = Modifier,
+    shape: Shape = HeroShape,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(top, bottom)))
+    ) { content() }
+}
+
+data class HeroStat(val icon: ImageVector, val label: String, val value: String)
+
+/** Evenly spaced stats separated by hairlines. */
+@Composable
+fun HeroStatStrip(stats: List<HeroStat>, container: Color, modifier: Modifier = Modifier) {
+    Surface(shape = RoundedCornerShape(24.dp), color = container, modifier = modifier.fillMaxWidth()) {
+        Row(Modifier.height(IntrinsicSize.Min).padding(vertical = 14.dp)) {
+            stats.forEachIndexed { i, st ->
+                if (i > 0) {
+                    VerticalDivider(
+                        Modifier.fillMaxHeight().padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                    )
+                }
+                Column(
+                    Modifier.weight(1f).padding(horizontal = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Icon(
+                        st.icon, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(st.value, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        st.label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
     }
 }

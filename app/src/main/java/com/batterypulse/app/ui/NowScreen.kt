@@ -50,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -201,6 +202,9 @@ fun NowScreen(
                         color = colors.primary,
                         track = colors.onSecondaryContainer.copy(alpha = 0.12f),
                         modifier = Modifier.size(84.dp),
+                        stroke = 7.dp,
+                        amplitude = 1.6.dp,
+                        wavelength = 13.dp,
                     ) {
                         Text(
                             health.healthPercent?.let { String.format(Locale.getDefault(), "%.0f", it) } ?: "—",
@@ -271,13 +275,9 @@ private fun Hero(s: BatterySnapshot, time: TimeEstimate?) {
     }
     val shown by animateIntAsState(s.level, tween(900), label = "levelNumber")
 
-    Card(
-        shape = HeroShape,
-        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    GradientCard(top = liquid.copy(alpha = 0.16f).compositeOver(colors.surfaceContainerLow), bottom = colors.surfaceContainerLow) {
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             LiquidGauge(
@@ -286,7 +286,7 @@ private fun Hero(s: BatterySnapshot, time: TimeEstimate?) {
                 liquid = liquid,
                 onLiquid = onLiquid,
                 textColor = colors.onSurface,
-                modifier = Modifier.fillMaxWidth(0.78f).aspectRatio(1f),
+                modifier = Modifier.fillMaxWidth(0.82f).aspectRatio(1f),
             ) { textColor ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     if (s.isCharging) {
@@ -298,8 +298,8 @@ private fun Hero(s: BatterySnapshot, time: TimeEstimate?) {
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             "$shown",
-                            fontSize = 84.sp,
-                            lineHeight = 84.sp,
+                            fontSize = 88.sp,
+                            lineHeight = 88.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = (-3).sp,
                             color = textColor,
@@ -309,37 +309,32 @@ private fun Hero(s: BatterySnapshot, time: TimeEstimate?) {
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
                             color = textColor,
-                            modifier = Modifier.padding(bottom = 14.dp, start = 2.dp),
+                            modifier = Modifier.padding(bottom = 15.dp, start = 2.dp),
                         )
                     }
                     Text(statusLabel(s.status), style = MaterialTheme.typography.titleMedium, color = textColor)
                 }
             }
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(22.dp))
             if (time != null) {
                 val main = time.millis?.let { formatDuration(it) } ?: time.label
-                Text(main, style = MaterialTheme.typography.headlineMedium)
+                Text(main, style = MaterialTheme.typography.displaySmall)
                 if (time.millis != null) {
-                    Text(time.label, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                    Text(time.label, style = MaterialTheme.typography.bodyLarge, color = colors.onSurfaceVariant)
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(20.dp))
             }
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Pill(pluggedLabel(s.plugged), Icons.Rounded.Usb, colors.secondaryContainer, colors.onSecondaryContainer)
-                if (!s.temperatureC.isNaN()) {
-                    Pill(formatTemp(s.temperatureC), Icons.Rounded.Thermostat, colors.secondaryContainer, colors.onSecondaryContainer)
-                }
-                s.powerW?.let { w ->
-                    Pill(
-                        String.format(Locale.getDefault(), "%.1f W", kotlin.math.abs(w)),
-                        Icons.Rounded.Power, colors.secondaryContainer, colors.onSecondaryContainer,
-                    )
-                }
-            }
+            HeroStatStrip(
+                stats = listOf(
+                    HeroStat(Icons.Rounded.Usb, "Source", pluggedLabel(s.plugged)),
+                    HeroStat(Icons.Rounded.Thermostat, "Temp", formatTemp(s.temperatureC)),
+                    HeroStat(
+                        Icons.Rounded.Power, if (s.isCharging) "Power in" else "Power draw",
+                        s.powerW?.let { String.format(Locale.getDefault(), "%.1f W", kotlin.math.abs(it)) } ?: "—",
+                    ),
+                ),
+                container = colors.surfaceContainerLowest.copy(alpha = 0.7f),
+            )
         }
     }
 }

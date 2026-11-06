@@ -13,7 +13,7 @@ import kotlin.random.Random
 
 /** Realistic synthetic data so screenshots show every screen fully populated. */
 object FakeData {
-    val now = 1_762_400_000_000L // fixed so renders are stable
+    val now = System.currentTimeMillis() / 60_000L * 60_000L
 
     fun snapshot(charging: Boolean, level: Int = if (charging) 64 else 72, t: Long = now, jitter: Float = 0f) = BatterySnapshot(
         timestamp = t,

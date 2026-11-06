@@ -136,15 +136,11 @@ private fun HealthHero(health: HealthEstimate) {
     val pct = health.healthPercent
     val (accent, container) = when {
         pct == null -> colors.outline to colors.surfaceContainerLow
-        pct >= 80f -> colors.primary to colors.primaryContainer
-        pct >= 70f -> colors.tertiary to colors.tertiaryContainer
-        else -> colors.error to colors.errorContainer
+        pct >= 80f -> colors.primary to colors.primaryContainer.copy(alpha = 0.7f)
+        pct >= 70f -> colors.tertiary to colors.tertiaryContainer.copy(alpha = 0.7f)
+        else -> colors.error to colors.errorContainer.copy(alpha = 0.7f)
     }
-    Card(
-        shape = HeroShape,
-        colors = CardDefaults.cardColors(containerColor = container),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    GradientCard(top = container, bottom = colors.surfaceContainerLow) {
         Column(
             Modifier.fillMaxWidth().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -152,32 +148,56 @@ private fun HealthHero(health: HealthEstimate) {
             WavyArcGauge(
                 progress = (pct ?: 0f) / 100f,
                 color = accent,
-                track = accent.copy(alpha = 0.16f),
-                modifier = Modifier.fillMaxWidth(0.75f).aspectRatio(1f),
+                track = accent.copy(alpha = 0.18f),
+                modifier = Modifier.fillMaxWidth(0.82f).aspectRatio(1f),
+                stroke = 14.dp,
+                amplitude = 3.5.dp,
+                wavelength = 34.dp,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Estimated health", style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             pct?.let { String.format(Locale.getDefault(), "%.0f", it) } ?: "—",
-                            fontSize = 76.sp, lineHeight = 76.sp,
+                            fontSize = 88.sp, lineHeight = 88.sp,
                             fontWeight = FontWeight.Black, letterSpacing = (-3).sp,
                         )
                         if (pct != null) {
                             Text(
-                                "%", fontSize = 26.sp, fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(bottom = 12.dp, start = 2.dp),
+                                "%", fontSize = 28.sp, fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 15.dp, start = 2.dp),
                             )
                         }
                     }
-                    Text(verdict(pct), style = MaterialTheme.typography.titleLarge, color = accent)
+                    Text(verdict(pct), style = MaterialTheme.typography.headlineSmall, color = accent)
+                }
+                Column(
+                    Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    ConfidenceDots(health.confidence, accent)
+                    Text(
+                        health.confidence.label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
                 }
             }
-            Text(
-                health.confidence.label,
-                style = MaterialTheme.typography.labelLarge,
-                textAlign = TextAlign.Center,
+            Spacer(Modifier.height(16.dp))
+            HeroStatStrip(
+                stats = listOf(
+                    HeroStat(Icons.Rounded.BatteryStd, "Now", formatMah(health.estimatedMah)),
+                    HeroStat(Icons.Rounded.Science, "Design", formatMah(health.designMah)),
+                    HeroStat(
+                        Icons.Rounded.Autorenew, "Cycles",
+                        health.cycleCount?.toString()
+                            ?: String.format(Locale.getDefault(), "~%.0f", health.estimatedCycles),
+                    ),
+                ),
+                container = colors.surfaceContainerLowest.copy(alpha = 0.7f),
             )
-            ConfidenceDots(health.confidence, accent)
         }
     }
 }
@@ -190,7 +210,7 @@ private fun ConfidenceDots(c: Confidence, accent: Color) {
         Confidence.MEDIUM -> 2
         Confidence.HIGH -> 3
     }
-    Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         repeat(3) { i ->
             Box(
                 Modifier

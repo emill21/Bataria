@@ -30,6 +30,9 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.cos
@@ -103,49 +106,84 @@ fun LiquidGauge(
     Box(modifier, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val outer = size.minDimension / 2f
-            val ringStroke = 6.dp.toPx()
+            val ringStroke = 7.dp.toPx()
             val ringR = outer - ringStroke / 2f
             val r = liquidRadius()
 
-            // Level ring
-            drawCircle(track, radius = ringR, style = Stroke(ringStroke))
-            drawArc(
-                color = liquid,
-                startAngle = -90f,
-                sweepAngle = 360f * fill,
-                useCenter = false,
-                topLeft = Offset(center.x - ringR, center.y - ringR),
-                size = Size(ringR * 2, ringR * 2),
-                style = Stroke(ringStroke, cap = StrokeCap.Round),
+            // Soft glow behind everything
+            drawCircle(
+                Brush.radialGradient(
+                    listOf(liquid.copy(alpha = 0.20f), liquid.copy(alpha = 0.0f)),
+                    center = center, radius = outer,
+                ),
+                radius = outer,
             )
 
-            // Liquid
-            drawCircle(liquid.copy(alpha = 0.07f), radius = r)
+            // Level ring: faint track, gradient progress, knob at the end
+            drawCircle(track, radius = ringR, style = Stroke(ringStroke))
+            if (fill > 0.005f) {
+                rotate(-90f, center) {
+                    drawArc(
+                        brush = Brush.sweepGradient(
+                            0f to liquid.copy(alpha = 0.35f),
+                            fill.coerceAtLeast(0.01f) to liquid,
+                            1f to liquid,
+                            center = center,
+                        ),
+                        startAngle = 0f,
+                        sweepAngle = 360f * fill,
+                        useCenter = false,
+                        topLeft = Offset(center.x - ringR, center.y - ringR),
+                        size = Size(ringR * 2, ringR * 2),
+                        style = Stroke(ringStroke, cap = StrokeCap.Round),
+                    )
+                }
+                val a = Math.toRadians((-90.0 + 360.0 * fill))
+                val knob = Offset(center.x + ringR * cos(a).toFloat(), center.y + ringR * sin(a).toFloat())
+                drawCircle(onLiquid, radius = ringStroke * 0.28f, center = knob)
+            }
+
+            // Glass bowl
+            drawCircle(liquid.copy(alpha = 0.08f), radius = r)
             val circle = Path().apply { addOval(Rect(center, r)) }
             clipPath(circle) {
-                drawPath(wavePath(fill, phase * -1f + 2.2f, 0.75f, 1.7f), liquid.copy(alpha = 0.32f))
+                val top = waterLine(fill)
+                drawPath(wavePath(fill, phase * -1f + 2.2f, 0.75f, 1.7f), liquid.copy(alpha = 0.30f))
                 drawPath(
                     wavePath(fill, phase, 1f, 1.15f),
                     Brush.verticalGradient(
-                        listOf(liquid, liquid.copy(alpha = 0.78f)),
-                        startY = waterLine(fill),
+                        listOf(lerp(liquid, Color.White, 0.16f), liquid, lerp(liquid, Color.Black, 0.12f)),
+                        startY = top,
                         endY = center.y + r,
                     ),
                 )
                 if (charging && fill > 0.05f) {
                     val bottom = center.y + r
-                    val top = waterLine(fill)
-                    for (i in 0 until 8) {
+                    for (i in 0 until 9) {
                         val offset = (i * 0.137f + i * i * 0.071f) % 1f
                         val prog = (bubbleT + offset) % 1f
                         val lane = ((i * 37) % 100) / 100f - 0.5f
                         val x = center.x + lane * r * 1.3f + sin(prog * 9f + i) * 4.dp.toPx()
                         val y = bottom - prog * (bottom - top)
-                        val br = (2.5f + (i % 3) * 1.6f).dp.toPx()
-                        drawCircle(onLiquid.copy(alpha = 0.45f * (1f - prog)), radius = br, center = Offset(x, y))
+                        val br = (2.5f + (i % 3) * 1.8f).dp.toPx()
+                        drawCircle(onLiquid.copy(alpha = 0.40f * (1f - prog)), radius = br, center = Offset(x, y))
+                        drawCircle(
+                            onLiquid.copy(alpha = 0.55f * (1f - prog)), radius = br,
+                            center = Offset(x, y), style = Stroke(1.dp.toPx()),
+                        )
                     }
                 }
+                // Glass highlight
+                drawCircle(
+                    Brush.radialGradient(
+                        listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.0f)),
+                        center = Offset(center.x - r * 0.38f, center.y - r * 0.42f),
+                        radius = r * 0.75f,
+                    ),
+                    radius = r,
+                )
             }
+            drawCircle(liquid.copy(alpha = 0.30f), radius = r, style = Stroke(1.5.dp.toPx()))
         }
         content(textColor)
         Box(
@@ -172,6 +210,9 @@ fun WavyArcGauge(
     color: Color,
     track: Color,
     modifier: Modifier = Modifier,
+    stroke: Dp = 12.dp,
+    amplitude: Dp = 3.dp,
+    wavelength: Dp = 30.dp,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val p by animateFloatAsState(
@@ -182,42 +223,48 @@ fun WavyArcGauge(
     val phase by rememberInfiniteTransition(label = "wave").animateFloat(
         initialValue = 0f,
         targetValue = TWO_PI,
-        animationSpec = infiniteRepeatable(tween(2600, easing = LinearEasing)),
+        animationSpec = infiniteRepeatable(tween(2200, easing = LinearEasing)),
         label = "wavePhase",
     )
     Box(modifier, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
-            val stroke = 12.dp.toPx()
-            val amp = 3.5.dp.toPx()
-            val r = size.minDimension / 2f - stroke / 2f - amp
-            val start = 150f
-            val sweep = 240f
-            val gap = if (p > 0.01f && p < 0.99f) 10f else 0f
+            val sw = stroke.toPx()
+            val amp = amplitude.toPx()
+            val wl = wavelength.toPx()
+            val r = size.minDimension / 2f - sw / 2f - amp
+            val start = 135f
+            val sweep = 270f
             val progSweep = sweep * p
+            val gapDeg = Math.toDegrees(((sw * 1.6f) / r).toDouble()).toFloat()
 
-            if (p < 1f) {
+            val trackStart = if (p > 0.005f) start + progSweep + gapDeg else start
+            val trackSweep = (start + sweep) - trackStart
+            if (trackSweep > 0f) {
                 drawArc(
                     color = track,
-                    startAngle = start + progSweep + gap,
-                    sweepAngle = (sweep - progSweep - gap).coerceAtLeast(0f),
+                    startAngle = trackStart,
+                    sweepAngle = trackSweep,
                     useCenter = false,
                     topLeft = Offset(center.x - r, center.y - r),
                     size = Size(r * 2, r * 2),
-                    style = Stroke(stroke, cap = StrokeCap.Round),
+                    style = Stroke(sw, cap = StrokeCap.Round),
                 )
             }
-            if (p > 0f) {
+            if (p > 0.005f) {
                 val path = Path()
-                val n = (progSweep * 2f).toInt().coerceAtLeast(2)
+                val arcLen = r * Math.toRadians(progSweep.toDouble()).toFloat()
+                val n = (arcLen / 1.5.dp.toPx()).toInt().coerceAtLeast(2)
                 for (k in 0..n) {
-                    val deg = start + progSweep * k / n
-                    val a = Math.toRadians(deg.toDouble())
-                    val rr = r + amp * sin(a.toFloat() * 14f - phase)
+                    val sLen = arcLen * k / n
+                    val a = Math.toRadians(start.toDouble()) + sLen / r
+                    // Taper the wave in at both ends so the caps sit on the circle.
+                    val taper = minOf(1f, sLen / wl, (arcLen - sLen) / wl).coerceAtLeast(0f)
+                    val rr = r + amp * taper * sin(sLen / wl * TWO_PI - phase)
                     val x = center.x + rr * cos(a).toFloat()
                     val y = center.y + rr * sin(a).toFloat()
                     if (k == 0) path.moveTo(x, y) else path.lineTo(x, y)
                 }
-                drawPath(path, color, style = Stroke(stroke * 0.85f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                drawPath(path, color, style = Stroke(sw, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }
         }
         content()
@@ -267,8 +314,9 @@ fun Sparkline(values: List<Float>, color: Color, modifier: Modifier = Modifier) 
             lineTo(0f, size.height)
             close()
         }
-        drawPath(fill, Brush.verticalGradient(listOf(color.copy(alpha = 0.25f), Color.Transparent)))
-        drawPath(line, color, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-        drawCircle(color, radius = 3.dp.toPx(), center = pts.last())
+        drawPath(fill, Brush.verticalGradient(listOf(color.copy(alpha = 0.35f), Color.Transparent)))
+        drawPath(line, color, style = Stroke(2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        drawCircle(color.copy(alpha = 0.25f), radius = 6.dp.toPx(), center = pts.last())
+        drawCircle(color, radius = 3.5.dp.toPx(), center = pts.last())
     }
 }
