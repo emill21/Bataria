@@ -202,9 +202,9 @@ fun NowScreen(
                         color = colors.primary,
                         track = colors.onSecondaryContainer.copy(alpha = 0.12f),
                         modifier = Modifier.size(84.dp),
-                        stroke = 7.dp,
-                        amplitude = 1.6.dp,
-                        wavelength = 13.dp,
+                        stroke = 6.dp,
+                        amplitude = 1.4.dp,
+                        wavelength = 16.dp,
                     ) {
                         Text(
                             health.healthPercent?.let { String.format(Locale.getDefault(), "%.0f", it) } ?: "—",

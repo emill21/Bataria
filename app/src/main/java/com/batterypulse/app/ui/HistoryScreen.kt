@@ -111,7 +111,7 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
             )
         }
         item {
-            val values = pts.map { it.currentMa }
+            val values = downsample(pts.map { it.t to it.currentMa }, start, now).map { it.second }
             val lo = floor(minOf(values.minOrNull() ?: -500f, 0f) / 500f) * 500f
             val hi = ceil(max(values.maxOrNull() ?: 500f, 0f) / 500f) * 500f
             ChartCard(
@@ -128,7 +128,7 @@ fun HistoryScreen(history: List<Sample>, padding: PaddingValues) {
             )
         }
         item {
-            val temps = pts.map { it.tempC }.filter { !it.isNaN() }
+            val temps = downsample(pts.map { it.t to it.tempC }, start, now).map { it.second }.filter { !it.isNaN() }
             val lo = floor((temps.minOrNull() ?: 20f) - 2f)
             val hi = ceil((temps.maxOrNull() ?: 40f) + 2f)
             ChartCard(
@@ -197,7 +197,10 @@ private fun ChartCard(
     onCursor: (Long?) -> Unit,
     baseline: Float? = null,
 ) {
-    val points = remember(samples) { samples.map { it.t to value(it) } }
+    val points = remember(samples, startT, endT) {
+        downsample(samples.map { it.t to value(it) }, startT, endT)
+    }
+    val gap = maxOf(10 * 60_000L, (endT - startT) / 140 * 3)
     val idx = cursor?.let { nearestIndex(points, it) } ?: points.lastIndex
     val shown = points.getOrNull(idx)
     Card(
@@ -230,7 +233,7 @@ private fun ChartCard(
                 }
                 InteractiveChart(
                     points = points, startT = startT, endT = endT, minY = minY, maxY = maxY,
-                    color = color, baseline = baseline, shaded = shaded, shadeColor = shadeColor,
+                    color = color, baseline = baseline, shaded = shaded, shadeColor = shadeColor, gapMs = gap,
                     selectedT = cursor, onSelect = onCursor,
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                 )

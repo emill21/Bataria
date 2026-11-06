@@ -159,3 +159,31 @@ fun <T> ranges(items: List<T>, time: (T) -> Long, gapMs: Long = 10 * 60_000L, pr
     if (start != null) out.add(start to last)
     return out
 }
+
+
+/**
+ * Averages points into [buckets] time buckets so dense, noisy minute data draws as a clean
+ * line. Empty buckets are skipped, so real gaps stay gaps.
+ */
+fun downsample(points: List<Pair<Long, Float>>, start: Long, end: Long, buckets: Int = 140): List<Pair<Long, Float>> {
+    if (points.size <= buckets || end <= start) return points
+    val w = (end - start).toDouble() / buckets
+    val out = ArrayList<Pair<Long, Float>>(buckets)
+    var i = 0
+    while (i < points.size && points[i].first < start) i++
+    for (b in 0 until buckets) {
+        val bEnd = start + ((b + 1) * w).toLong()
+        var sum = 0.0
+        var tSum = 0.0
+        var n = 0
+        while (i < points.size && (points[i].first < bEnd || b == buckets - 1)) {
+            val v = points[i].second
+            if (!v.isNaN()) {
+                sum += v; tSum += points[i].first.toDouble(); n++
+            }
+            i++
+        }
+        if (n > 0) out.add((tSum / n).toLong() to (sum / n).toFloat())
+    }
+    return out
+}

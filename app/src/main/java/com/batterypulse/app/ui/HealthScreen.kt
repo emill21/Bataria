@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -62,25 +63,6 @@ fun HealthScreen(
 
         item { CapacityCard(health, s) }
 
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MiniCard(
-                    label = if (health.cycleCount != null) "Charge cycles" else "Est. cycles",
-                    value = health.cycleCount?.toString()
-                        ?: String.format(Locale.getDefault(), "%.1f", health.estimatedCycles),
-                    sub = if (health.cycleCount != null) "Reported by Android"
-                    else "Since ${formatDate(health.trackingSince)}",
-                    modifier = Modifier.weight(1f),
-                )
-                MiniCard(
-                    label = "Measured charges",
-                    value = "${sessions.size}",
-                    sub = "${health.sessionsUsed} used for health",
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-
         if (sessions.size >= 2) {
             item { TrendCard(sessions, health.designMah) }
         }
@@ -95,7 +77,7 @@ fun HealthScreen(
             }
         }
 
-        item { SectionHeader("Charge history") }
+        item { SectionHeader(if (sessions.isEmpty()) "Charge history" else "Charge history · ${sessions.size}") }
         if (sessions.isEmpty()) {
             item {
                 SectionCard {
@@ -150,9 +132,9 @@ private fun HealthHero(health: HealthEstimate) {
                 color = accent,
                 track = accent.copy(alpha = 0.18f),
                 modifier = Modifier.fillMaxWidth(0.82f).aspectRatio(1f),
-                stroke = 14.dp,
-                amplitude = 3.5.dp,
-                wavelength = 34.dp,
+                stroke = 11.dp,
+                amplitude = 3.dp,
+                wavelength = 44.dp,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Estimated health", style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
@@ -303,17 +285,23 @@ private fun TrendCard(sessions: List<ChargeSession>, design: Float?) {
                 color = colors.primary,
             )
             Spacer(Modifier.height(12.dp))
-            InteractiveChart(
-                points = pts,
-                startT = pts.first().first,
-                endT = pts.last().first,
-                minY = lo, maxY = hi,
-                color = colors.primary,
-                gapMs = Long.MAX_VALUE,
-                selectedT = selected,
-                onSelect = { selected = it },
-                modifier = Modifier.fillMaxWidth().height(140.dp),
-            )
+            Row(Modifier.height(140.dp)) {
+                Column(Modifier.fillMaxHeight().width(40.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                    Text(String.format(Locale.getDefault(), "%.0f", hi) + if (design != null) "%" else "", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                    Text(String.format(Locale.getDefault(), "%.0f", lo) + if (design != null) "%" else "", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                }
+                InteractiveChart(
+                    points = pts,
+                    startT = pts.first().first,
+                    endT = pts.last().first,
+                    minY = lo, maxY = hi,
+                    color = colors.primary,
+                    gapMs = Long.MAX_VALUE,
+                    selectedT = selected,
+                    onSelect = { selected = it },
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                )
+            }
             Spacer(Modifier.height(8.dp))
         }
     }

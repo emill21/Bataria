@@ -124,12 +124,7 @@ fun LiquidGauge(
             if (fill > 0.005f) {
                 rotate(-90f, center) {
                     drawArc(
-                        brush = Brush.sweepGradient(
-                            0f to liquid.copy(alpha = 0.35f),
-                            fill.coerceAtLeast(0.01f) to liquid,
-                            1f to liquid,
-                            center = center,
-                        ),
+                        color = liquid,
                         startAngle = 0f,
                         sweepAngle = 360f * fill,
                         useCenter = false,
@@ -173,15 +168,17 @@ fun LiquidGauge(
                         )
                     }
                 }
-                // Glass highlight
-                drawCircle(
-                    Brush.radialGradient(
-                        listOf(Color.White.copy(alpha = 0.22f), Color.White.copy(alpha = 0.0f)),
-                        center = Offset(center.x - r * 0.38f, center.y - r * 0.42f),
-                        radius = r * 0.75f,
-                    ),
-                    radius = r,
-                )
+                // Glossy highlight on the liquid only
+                clipPath(wavePath(fill, phase, 1f, 1.15f)) {
+                    drawCircle(
+                        Brush.radialGradient(
+                            listOf(Color.White.copy(alpha = 0.24f), Color.White.copy(alpha = 0.0f)),
+                            center = Offset(center.x - r * 0.35f, top + (center.y + r - top) * 0.25f),
+                            radius = r * 0.7f,
+                        ),
+                        radius = r,
+                    )
+                }
             }
             drawCircle(liquid.copy(alpha = 0.30f), radius = r, style = Stroke(1.5.dp.toPx()))
         }
