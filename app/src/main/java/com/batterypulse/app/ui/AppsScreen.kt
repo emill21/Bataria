@@ -131,7 +131,7 @@ fun AppsContent(
                         Text("See which apps drain your battery", style = MaterialTheme.typography.headlineSmall)
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "Battery Pulse matches your battery history with which app was on screen, so you can see " +
+                            "Bataria matches your battery history with which app was on screen, so you can see " +
                                 "where your charge goes. Android needs you to allow “Usage access” for this.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant,
@@ -152,7 +152,7 @@ fun AppsContent(
                         Button(onClick = onGrant) { Text("Allow usage access") }
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "Find Battery Pulse in the list and switch it on, then come back.",
+                            "Find Bataria in the list and switch it on, then come back.",
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant,
                         )
@@ -183,7 +183,7 @@ fun AppsContent(
             animatedItem(2) {
                 SectionCard {
                     Text(
-                        "No app usage recorded in this period yet. Data builds up as Battery Pulse records your " +
+                        "No app usage recorded in this period yet. Data builds up as Bataria records your " +
                             "battery history; background monitoring makes it more complete.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant,

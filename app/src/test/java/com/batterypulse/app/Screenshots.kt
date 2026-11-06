@@ -24,7 +24,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.batterypulse.app.ui.OnboardingScreen
 import com.batterypulse.app.ui.SettingsScreen
 import com.batterypulse.app.ui.Tab
-import com.batterypulse.app.ui.theme.BatteryPulseTheme
+import com.batterypulse.app.ui.theme.BatariaTheme
 import com.batterypulse.app.ui.theme.DEFAULT_SEED
 import org.junit.Rule
 import org.junit.Test
@@ -59,7 +59,7 @@ class Screenshots {
     ) {
         rule.mainClock.autoAdvance = false
         rule.setContent {
-            BatteryPulseTheme(Appearance(if (dark) "dark" else "light", accent, false, background), dark) {
+            BatariaTheme(Appearance(if (dark) "dark" else "light", accent, false, background), dark) {
                 content(background)
             }
         }

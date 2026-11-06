@@ -1,13 +1,13 @@
 <resources>
-    <style name="Theme.BatteryPulse" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.Bataria" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowBackground">@color/splash_background</item>
     </style>
 
-    <style name="Theme.BatteryPulse.Starting" parent="Theme.SplashScreen">
+    <style name="Theme.Bataria.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
-        <item name="postSplashScreenTheme">@style/Theme.BatteryPulse</item>
+        <item name="postSplashScreenTheme">@style/Theme.Bataria</item>
     </style>
 </resources>

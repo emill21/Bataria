@@ -215,7 +215,7 @@ private fun ColorScheme.frosted(dark: Boolean): ColorScheme {
 }
 
 @Composable
-fun BatteryPulseTheme(
+fun BatariaTheme(
     appearance: Appearance,
     dark: Boolean,
     content: @Composable () -> Unit,

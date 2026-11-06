@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Battery Pulse</string>
+    <string name="app_name">Bataria</string>
     <string name="widget_description">Battery level, current, temperature and health</string>
     <string name="widget_stats_name">Battery stats</string>
     <string name="widget_ring_name">Battery ring</string>

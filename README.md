@@ -1,4 +1,4 @@
-# Battery Pulse
+# Bataria
 
 A Material You battery monitor for Android 8+ (dynamic wallpaper colors on Android 12+, themed icon on 13+).
 
@@ -17,7 +17,7 @@ A Material You battery monitor for Android 8+ (dynamic wallpaper colors on Andro
 **Option B – no Android Studio (GitHub builds it):**
 1. Create a new GitHub repo and push this folder to it.
 2. Open the repo's **Actions** tab — the "Build APK" workflow runs automatically (~5 min).
-3. Download the `BatteryPulse-apk` artifact, unzip, and install `app-release.apk` on your phone
+3. Download the `Bataria-apk` artifact, unzip, and install `app-release.apk` on your phone
    (allow "install unknown apps" when prompted).
 
 The release APK is signed with a debug key so it installs straight away; use your own key before publishing to Play.
@@ -28,7 +28,7 @@ The release APK is signed with a debug key so it installs straight away; use you
   positive values. The app learns the unit (no phone draws 20 A, so values that large must be µA) and the sign
   (unplugged, a battery can only discharge) from live readings. Both can be overridden in Settings, which also
   shows the raw value.
-* **Health** – Android doesn't give regular apps the battery's internal health figure. Battery Pulse measures it:
+* **Health** – Android doesn't give regular apps the battery's internal health figure. Bataria measures it:
   during each charge of ≥15 % it records the charge-counter delta (falling back to integrating current) and
   divides by the % gained to get true full capacity. The median of the last five charges, compared to design
   capacity, gives health. Confidence goes Low (instant charge-counter estimate) → Medium (1–2 charges) → High

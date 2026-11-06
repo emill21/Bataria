@@ -1,5 +1,16 @@
 [
   {
+    "version": "3.3",
+    "date": "2026-11-06",
+    "title": "Hello, Bataria",
+    "items": [
+      "Battery Pulse is now called Bataria",
+      "Your phone is recognised automatically so battery health works right away: Pixel 4a through Pixel 10, Galaxy S21 through S25, Galaxy A and Z series, and recent OnePlus phones",
+      "The welcome tour now asks Android directly to let Bataria run unrestricted in the background, and shows when it's done",
+      "Fixed hard-to-read dark text in the welcome tour and charger tester"
+    ]
+  },
+  {
     "version": "3.2",
     "date": "2026-11-06",
     "title": "App drain, charger tester and new widgets",

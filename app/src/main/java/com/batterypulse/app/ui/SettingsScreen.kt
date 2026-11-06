@@ -158,18 +158,7 @@ fun SettingsScreen(
                         )
                     }
                 }
-                ListItem(
-                    colors = itemColors,
-                    modifier = Modifier.clickable {
-                        try {
-                            context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-                        } catch (e: Exception) {
-                        }
-                    },
-                    leadingContent = { IconBadge(Icons.Rounded.BatterySaver, MaterialTheme.colorScheme.primary, 36.dp) },
-                    headlineContent = { Text("Battery optimization") },
-                    supportingContent = { Text("If monitoring stops in the background, set Battery Pulse to “Unrestricted”.") },
-                )
+                Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) { UnrestrictedCard() }
             }
         }
 
@@ -267,7 +256,10 @@ fun SettingsScreen(
                     leadingContent = { IconBadge(Icons.Rounded.Edit, MaterialTheme.colorScheme.primary, 36.dp) },
                     headlineContent = { Text("Design capacity") },
                     supportingContent = {
-                        Text("${formatMah(design.first)} · ${design.second}. Tap to enter your phone's rated capacity.")
+                        Text(
+                            "${formatMah(design.first)} · ${design.second}. " +
+                                "Phone: ${com.batterypulse.app.data.DeviceBatteries.phoneName()}. Tap to change."
+                        )
                     },
                 )
             }
@@ -326,7 +318,7 @@ fun SettingsScreen(
 
         animatedItem(7) {
             SectionCard(title = "About") {
-                InfoRow("Battery Pulse", "v${BuildConfig.VERSION_NAME}", "Build ${BuildConfig.VERSION_CODE}", icon = Icons.Rounded.Info)
+                InfoRow("Bataria", "v${BuildConfig.VERSION_NAME}", "Build ${BuildConfig.VERSION_CODE}", icon = Icons.Rounded.Info)
                 ListItem(
                     colors = itemColors,
                     modifier = Modifier.clickable { showChangelog = true },

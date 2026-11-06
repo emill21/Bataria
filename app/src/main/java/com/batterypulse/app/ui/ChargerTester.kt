@@ -39,6 +39,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -128,6 +130,7 @@ fun ChargerTesterScreen(
     Box(Modifier.fillMaxSize().background(colors.surface)) {
         val appearance by BatteryMonitor.appearance.collectAsState()
         AnimatedBackground(appearance.background, Modifier.fillMaxSize())
+        CompositionLocalProvider(LocalContentColor provides colors.onSurface) {
         LazyColumn(
             Modifier.fillMaxSize().systemBarsPadding(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
@@ -200,6 +203,7 @@ fun ChargerTesterScreen(
                     modifier = Modifier.padding(horizontal = 8.dp),
                 )
             }
+        }
         }
     }
 }

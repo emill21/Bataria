@@ -22,8 +22,8 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.batterypulse.app.data.BatteryMonitor
-import com.batterypulse.app.ui.BatteryPulseApp
-import com.batterypulse.app.ui.theme.BatteryPulseTheme
+import com.batterypulse.app.ui.BatariaApp
+import com.batterypulse.app.ui.theme.BatariaTheme
 import com.batterypulse.app.widget.BatteryWidget
 import kotlinx.coroutines.launch
 
@@ -46,14 +46,14 @@ class MainActivity : ComponentActivity() {
                 onDispose { }
             }
             var onboarded by remember { mutableStateOf(BatteryMonitor.prefs.onboardingDone) }
-            BatteryPulseTheme(appearance, dark) {
+            BatariaTheme(appearance, dark) {
                 AnimatedContent(
                     targetState = onboarded,
                     transitionSpec = { fadeIn(tween(500)).togetherWith(fadeOut(tween(300))) },
                     label = "onboarding",
                 ) { done ->
                     if (done) {
-                        BatteryPulseApp(onReplayTour = { onboarded = false })
+                        BatariaApp(onReplayTour = { onboarded = false })
                     } else {
                         OnboardingScreen(appearance, onFinish = {
                             BatteryMonitor.prefs.onboardingDone = true

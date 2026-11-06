@@ -277,6 +277,7 @@ object BatteryMonitor {
         val result: Pair<Float?, String> = when {
             override > 0 -> override.toFloat() to "Set by you"
             else -> BatteryReader.readSysfsMah("charge_full_design")?.let { it to "Reported by the battery" }
+                ?: DeviceBatteries.detect()?.let { it.capacityMah.toFloat() to "Detected: ${it.name}" }
                 ?: BatteryReader.powerProfileCapacity(app)?.let { it to "Manufacturer power profile" }
                 ?: (null to "Unknown — set it in Settings")
         }

@@ -59,6 +59,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -78,6 +80,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.batterypulse.app.data.Appearance
 import com.batterypulse.app.data.BatteryMonitor
+import com.batterypulse.app.data.BatteryOptimization
+import com.batterypulse.app.data.DeviceBatteries
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -97,6 +102,7 @@ fun OnboardingScreen(
 
     Box(Modifier.fillMaxSize().background(colors.surface)) {
         AnimatedBackground(appearance.background, Modifier.fillMaxSize())
+        CompositionLocalProvider(LocalContentColor provides colors.onSurface) {
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
@@ -171,6 +177,7 @@ fun OnboardingScreen(
                 }
             }
         }
+        }
     }
 }
 
@@ -218,7 +225,7 @@ private fun WelcomePage() {
         Spacer(Modifier.height(28.dp))
         Text("Welcome to", style = MaterialTheme.typography.titleLarge, color = colors.onSurfaceVariant)
         Text(
-            "Battery Pulse",
+            "Bataria",
             fontSize = 44.sp, lineHeight = 48.sp, fontWeight = FontWeight.Black, letterSpacing = (-1.5).sp,
             color = colors.primary,
         )
@@ -269,7 +276,7 @@ private fun HealthPage() {
     val colors = MaterialTheme.colorScheme
     PageTitle(
         "How health is measured",
-        "Android doesn't let apps read your battery's real health, so Battery Pulse measures it for you.",
+        "Android doesn't let apps read your battery's real health, so Bataria measures it for you.",
     )
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         WavyArcGauge(
@@ -337,7 +344,7 @@ private fun MonitoringPage() {
     }
     PageTitle(
         "Background monitoring",
-        "To measure health, Battery Pulse needs to notice your charges even when it's closed. Choose how:",
+        "To measure health, Bataria needs to notice your charges even when it's closed. Choose how:",
     )
     ModeCard(
         selected = mode == "quiet",
@@ -373,17 +380,51 @@ private fun MonitoringPage() {
         badge = null,
         body = "Only measures while the app is open. Health will take much longer to work out.",
     ) { BatteryMonitor.setMonitoring(context, false) }
-    Spacer(Modifier.height(16.dp))
     if (monitoring) {
-        TextButton(onClick = {
-            try {
-                context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-            } catch (e: Exception) {
+        Spacer(Modifier.height(20.dp))
+        UnrestrictedCard()
+    }
+}
+
+/** One-tap prompt to exempt Bataria from battery optimization, with live status. */
+@Composable
+fun UnrestrictedCard() {
+    val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
+    var unrestricted by remember { mutableStateOf(BatteryOptimization.isUnrestricted(context)) }
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.LaunchedEffect(lifecycle) {
+        lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            unrestricted = BatteryOptimization.isUnrestricted(context)
+        }
+    }
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (unrestricted) colors.primaryContainer else colors.tertiaryContainer,
+            contentColor = if (unrestricted) colors.onPrimaryContainer else colors.onTertiaryContainer,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(if (unrestricted) Icons.Rounded.CheckCircle else Icons.Rounded.BatterySaver, contentDescription = null)
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    if (unrestricted) "Unrestricted battery: on" else "Allow unrestricted battery",
+                    style = MaterialTheme.typography.titleMedium,
+                )
             }
-        }) {
-            Icon(Icons.Rounded.BatterySaver, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Phone stops apps in the background? Set Battery Pulse to Unrestricted")
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (unrestricted) "Android won't stop Bataria in the background, so no charge is missed."
+                else "Some phones stop apps in the background to save power. This keeps Bataria's monitoring running. It uses almost no battery.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            if (!unrestricted) {
+                Spacer(Modifier.height(12.dp))
+                Button(onClick = { BatteryOptimization.request(context) }) { Text("Allow") }
+            }
         }
     }
 }
@@ -476,6 +517,7 @@ private fun FinalTouchesPage() {
             IconBadge(Icons.Rounded.HealthAndSafety, MaterialTheme.colorScheme.primary, size = 40.dp)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
+                Text("Your phone: ${DeviceBatteries.phoneName()}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Text("Battery size when new", style = MaterialTheme.typography.titleMedium)
                 Text(
                     "${formatMah(design.first)} · ${design.second}",
@@ -519,7 +561,7 @@ private fun DonePage() {
         Text("You're all set", style = MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.height(12.dp))
         Text(
-            "Battery Pulse is watching your battery. Health appears after your first few charges, " +
+            "Bataria is watching your battery. Health appears after your first few charges, " +
                 "so just use your phone as normal.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
@@ -527,7 +569,7 @@ private fun DonePage() {
         )
         Spacer(Modifier.height(20.dp))
         GlassCard {
-            Tip(Icons.Rounded.Widgets, "Add the widget: long-press your home screen › Widgets › Battery Pulse.")
+            Tip(Icons.Rounded.Widgets, "Add the widget: long-press your home screen › Widgets › Bataria.")
             Tip(Icons.Rounded.Timeline, "Press and drag on any chart to see exact values.")
             Tip(Icons.Rounded.Palette, "Replay this tour any time from Settings › About.")
         }

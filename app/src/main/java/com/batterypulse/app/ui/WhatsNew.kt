@@ -51,7 +51,7 @@ fun ChangelogSheet(releases: List<Release>, latestOnly: Boolean, onDismiss: () -
                         Text(if (latestOnly) "What's new" else "Changelog", style = MaterialTheme.typography.headlineMedium)
                         if (latestOnly && shown.isNotEmpty()) {
                             Text(
-                                "Battery Pulse ${shown[0].version}",
+                                "Bataria ${shown[0].version}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = colors.onSurfaceVariant,
                             )

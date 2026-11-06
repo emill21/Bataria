@@ -86,7 +86,7 @@ enum class Tab(val label: String, val title: String, val icon: ImageVector, val 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BatteryPulseApp(onReplayTour: () -> Unit = {}) {
+fun BatariaApp(onReplayTour: () -> Unit = {}) {
     var tab by rememberSaveable { mutableStateOf(Tab.Now) }
     val haptics = LocalHapticFeedback.current
 
