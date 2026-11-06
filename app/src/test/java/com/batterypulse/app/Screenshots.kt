@@ -25,7 +25,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.io.File
 import java.io.FileOutputStream
 
-/** Renders every screen to build/screenshots/*.png (run on CI, pushed to the `screenshots` branch). */
+/** Renders every screen to PNGs in build/screenshots (CI pushes them to the screenshots branch). */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w400dp-h1500dp-xhdpi")
