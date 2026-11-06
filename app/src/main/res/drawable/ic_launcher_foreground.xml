@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- battery cap -->
+    <path android:fillColor="#1E5631"
+        android:pathData="M48,30h12a2,2 0,0 1,2 2v3h-16v-3a2,2 0,0 1,2 -2z" />
+    <!-- battery body -->
+    <path android:fillColor="#1E5631"
+        android:pathData="M42,35h24a6,6 0,0 1,6 6v31a6,6 0,0 1,-6 6h-24a6,6 0,0 1,-6 -6v-31a6,6 0,0 1,6 -6z" />
+    <!-- bolt -->
+    <path android:fillColor="#B8F5B0"
+        android:pathData="M57,40l-12,21h8l-3,13l12,-21h-8z" />
+</vector>
