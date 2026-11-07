@@ -204,4 +204,33 @@ class Screenshots {
         val chart = chartBitmap(FakeData.history, FakeData.now, 0xFF2B6A3F.toInt())
         FileOutputStream(File(dir, "16_widget_chart_art.png")).use { chart.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
+
+    @Test
+    fun launcherIcon() {
+        val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val dir = File("build/screenshots").apply { mkdirs() }
+        val size = 432
+        val icon = ctx.getDrawable(R.mipmap.ic_launcher) as android.graphics.drawable.AdaptiveIconDrawable
+        // Full adaptive icon (system mask applied) and the raw layers
+        fun render(d: android.graphics.drawable.Drawable, name: String) {
+            val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            d.setBounds(0, 0, size, size)
+            d.draw(Canvas(bmp))
+            FileOutputStream(File(dir, name)).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
+        render(icon, "17_icon_adaptive.png")
+        val layers = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val c = Canvas(layers)
+        icon.background.setBounds(0, 0, size, size); icon.background.draw(c)
+        icon.foreground.setBounds(0, 0, size, size); icon.foreground.draw(c)
+        FileOutputStream(File(dir, "18_icon_layers.png")).use { layers.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        icon.monochrome?.let { mono ->
+            val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val mc = Canvas(bmp)
+            mc.drawColor(0xFFDCE8F5.toInt())
+            mono.setTint(0xFF1F3A5F.toInt())
+            mono.setBounds(0, 0, size, size); mono.draw(mc)
+            FileOutputStream(File(dir, "19_icon_themed.png")).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
+    }
 }
