@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -12,8 +14,22 @@ android {
         applicationId = "com.batterypulse.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "3.3"
+        versionCode = 8
+        versionName = "3.4"
+    }
+
+    // One fixed key for every build, so new versions install over old ones and keep your data
+    // and permissions. (CI's throwaway debug key changes every run.)
+    val signing = Properties().apply {
+        rootProject.file("keystore/signing.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    }
+    signingConfigs {
+        create("bataria") {
+            storeFile = rootProject.file(signing.getProperty("storeFile", "keystore/bataria.jks"))
+            storePassword = signing.getProperty("storePassword")
+            keyAlias = signing.getProperty("keyAlias")
+            keyPassword = signing.getProperty("keyPassword")
+        }
     }
 
     buildTypes {
@@ -24,9 +40,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Signed with the debug key so the APK can be sideloaded straight away.
-            // Swap in your own signing config before publishing to the Play Store.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("bataria")
         }
     }
 

@@ -1,5 +1,14 @@
 [
   {
+    "version": "3.4",
+    "date": "2026-11-07",
+    "title": "Updates that just install",
+    "items": [
+      "Every build is now signed with the same key, so future updates install straight over the old version and keep your battery history, settings and permissions",
+      "One last time: uninstall your current Bataria before installing this version"
+    ]
+  },
+  {
     "version": "3.3",
     "date": "2026-11-06",
     "title": "Hello, Bataria",

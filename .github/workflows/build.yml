@@ -26,7 +26,7 @@ jobs:
           VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           jq -r '.[0] | "## \(.title)\n\n" + (.items | map("- " + .) | join("\n"))' app/src/main/assets/changelog.json > notes.md
-          printf '\n\n**Install:** download **Bataria.apk** below and open it on your phone. Your data carries over.\n' >> notes.md
+          printf '\n\n**Install:** download **Bataria.apk** below and open it on your phone. From 3.4 on, updates install over the previous version and keep your data.\n' >> notes.md
           cat notes.md
       - name: Rename APK
         run: mv app/build/outputs/apk/release/app-release.apk Bataria.apk
