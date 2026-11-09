@@ -21,7 +21,7 @@ jobs:
       - name: Render screens
         run: |
           chmod +x gradlew
-          ./gradlew testDebugUnitTest --tests '*Screenshots*' --stacktrace
+          ./gradlew :app:testDebugUnitTest --tests '*Screenshots*' --stacktrace
       - name: Upload test report
         if: failure()
         uses: actions/upload-artifact@v4

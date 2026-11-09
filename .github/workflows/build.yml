@@ -20,16 +20,22 @@ jobs:
       - name: Build release APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --stacktrace
+          ./gradlew :app:assembleRelease :wear:assembleRelease --stacktrace
       - name: Release notes
         run: |
           VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           jq -r '.[0] | "## \(.title)\n\n" + (.items | map("- " + .) | join("\n"))' app/src/main/assets/changelog.json > notes.md
           printf '\n\n**Install:** download **Bataria.apk** below and open it on your phone. From 3.4 on, updates install over the previous version and keep your data.\n' >> notes.md
+          WEAR_VERSION=$(grep -oP 'versionName = "\K[^"]+' wear/build.gradle.kts)
+          printf '\n### Wear OS %s\n\n' "$WEAR_VERSION" >> notes.md
+          jq -r '.[0] | (.items | map("- " + .) | join("\n"))' wear/src/main/assets/changelog.json >> notes.md
+          printf '\n\n**Watch:** install **Bataria-Wear.apk** on your watch with Wireless debugging (`adb install Bataria-Wear.apk`) or a phone app such as Wear Installer. See the README for step-by-step help.\n' >> notes.md
           cat notes.md
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk Bataria.apk
+        run: |
+          mv app/build/outputs/apk/release/app-release.apk Bataria.apk
+          mv wear/build/outputs/apk/release/wear-release.apk Bataria-Wear.apk
       - name: Publish release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -37,9 +43,13 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: Bataria ${{ env.VERSION }} (build ${{ github.run_number }})
           body_path: notes.md
-          files: Bataria.apk
+          files: |
+            Bataria.apk
+            Bataria-Wear.apk
           make_latest: true
       - uses: actions/upload-artifact@v4
         with:
           name: Bataria-apk
-          path: Bataria.apk
+          path: |
+            Bataria.apk
+            Bataria-Wear.apk

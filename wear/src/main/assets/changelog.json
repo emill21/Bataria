@@ -1,0 +1,14 @@
+[
+  {
+    "version": "1.0",
+    "date": "2026-11-09",
+    "title": "Bataria on your watch",
+    "items": [
+      "Live battery level, power, current, temperature and voltage, with time left worked out from how you use your watch",
+      "Battery health: learns how much your battery holds now and compares it with when it was new",
+      "History of the last 24 hours and 7 days, with charging stretches shaded",
+      "A Bataria tile with a level ring, and a watch-face complication",
+      "Swipe between Now, Health, History and Settings, just like on your phone"
+    ]
+  }
+]

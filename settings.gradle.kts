@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Bataria"
 include(":app")
+include(":wear")

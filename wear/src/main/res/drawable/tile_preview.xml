@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tile picker preview: the level ring at 72% around the Liquid Orb. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="oval"><solid android:color="#FF0F1510" /></shape></item>
+    <item android:drawable="@drawable/ic_launcher_foreground" />
+</layer-list>

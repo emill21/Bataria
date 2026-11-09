@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Bataria</string>
+    <string name="tile_label">Bataria</string>
+    <string name="complication_label">Bataria battery</string>
+</resources>
