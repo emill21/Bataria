@@ -39,3 +39,17 @@ The release APK is signed with a debug key so it installs straight away; use you
   (health stays accurate because each charge is measured from its start and end readings). Turn on
   **Live notification** for live stats in the notification shade, checks every few seconds and instant alerts.
   On aggressive OEM skins, set the app's battery usage to "Unrestricted".
+
+## Wear OS
+Bataria also runs on Wear OS 3+ watches (`wear/` module), using the same battery engine as the phone
+app (shared at build time).
+
+- **Now**: level ring, status, power, current, temperature, voltage and time left
+- **Health**: how much the battery holds now versus new, condition and cycle count
+- **History**: the last 24 hours and 7 days, recorded quietly every 15 minutes
+- **Tile** with a level ring, and a **complication** for your watch face
+
+Install: download `Bataria-Wear.apk` from the latest release, turn on **Wireless debugging** on the watch
+(**Settings › Developer options**; tap Build number 7 times in **Settings › System › About** first),
+then `adb pair <ip:port>`, `adb connect <ip:port>` and `adb install Bataria-Wear.apk`. Phone apps such
+as *Wear Installer 2* or *Bugjaeger* can do this without a computer.

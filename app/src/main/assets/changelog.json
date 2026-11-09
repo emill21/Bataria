@@ -1,5 +1,15 @@
 [
   {
+    "version": "3.7",
+    "date": "2026-11-09",
+    "title": "Bataria for your watch",
+    "items": [
+      "New: Bataria for Wear OS. Download Bataria-Wear.apk from the release to track your watch battery too",
+      "On the watch: live level, power and temperature, battery health, 24-hour and 7-day history",
+      "A Bataria tile and a watch-face complication"
+    ]
+  },
+  {
     "version": "3.6",
     "date": "2026-11-09",
     "title": "Swipe between screens",
