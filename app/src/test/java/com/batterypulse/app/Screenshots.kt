@@ -158,9 +158,9 @@ class Screenshots {
         val total = apps.sumOf { it.second.toDouble() }.toFloat() + 240f + 120f
         DrainReport(
             apps = apps.mapIndexed { i, (n, m) ->
-                AppDrain("pkg.$i", n, null, ((m / 4.2f) * 60_000).toLong(), m, m / total)
+                AppDrain("pkg.$i", n, null, ((m / 4.2f) * 60_000).toLong(), m, m / total, m / 4380f * 100f)
             },
-            screenOffMah = 240f, screenOffMs = 9 * 3_600_000L, otherMah = 120f, totalMah = total,
+            screenOffMah = 240f, screenOffMs = 9 * 3_600_000L, otherMah = 120f, totalMah = total, capacityMah = 4380f,
         )
     }
 

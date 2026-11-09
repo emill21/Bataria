@@ -62,6 +62,14 @@ import java.util.Locale
 
 private val RANGES = listOf("Today", "24 hours", "7 days")
 
+/** Battery percentage points: one decimal under 10%, whole numbers above. */
+private fun pct(v: Float): String = when {
+    v <= 0f -> "0%"
+    v < 0.1f -> "<0.1%"
+    v < 10f -> String.format(Locale.getDefault(), "%.1f%%", v)
+    else -> String.format(Locale.getDefault(), "%.0f%%", v)
+}
+
 @Composable
 fun AppsScreen(history: List<Sample>, capacityMah: Float?, padding: PaddingValues) {
     val context = LocalContext.current
@@ -201,14 +209,15 @@ fun AppsContent(
 
         animatedItem(4) {
             SectionCard {
-                OtherRow(Icons.Rounded.Bedtime, "Screen off", "Idle and background work over ${formatDuration(report.screenOffMs)}", report.screenOffMah, report.totalMah)
-                OtherRow(Icons.Rounded.PhoneAndroid, "System & other", "Lock screen, system UI and unidentified use", report.otherMah, report.totalMah)
+                OtherRow(Icons.Rounded.Bedtime, "Screen off", "Idle and background work over ${formatDuration(report.screenOffMs)}", report.screenOffMah, report)
+                OtherRow(Icons.Rounded.PhoneAndroid, "System & other", "Lock screen, system UI and unidentified use", report.otherMah, report)
             }
         }
         animatedItem(5) {
             Text(
-                "Estimates: each stretch of battery drain is shared between the apps that were on screen at the time. " +
-                    "Background activity counts under Screen off or System.",
+                "Percentages are of a full battery, so they add up to how much your battery actually dropped. " +
+                    "Each stretch of drain is shared between the apps on screen at the time; background " +
+                    "activity counts under Screen off or System. Estimates.",
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 8.dp),
@@ -250,8 +259,13 @@ private fun DrainSummary(r: DrainReport) {
                     }
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(String.format(Locale.getDefault(), "%,.0f", r.totalMah), style = MaterialTheme.typography.titleLarge)
-                    Text("mAh used", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                    Text(pct(r.totalPct), style = MaterialTheme.typography.titleLarge)
+                    Text("of battery", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                    Text(
+                        String.format(Locale.getDefault(), "%,.0f mAh", r.totalMah),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.onSurfaceVariant,
+                    )
                 }
             }
             Spacer(Modifier.width(20.dp))
@@ -264,7 +278,7 @@ private fun DrainSummary(r: DrainReport) {
                 )
                 top.firstOrNull()?.let {
                     Text(
-                        String.format(Locale.getDefault(), "%.0f%% of battery used", it.share * 100f),
+                        "Used ${pct(it.batteryPct)} of your battery",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -301,10 +315,11 @@ private fun AppRow(a: AppDrain, max: Float, color: Color) {
                         a.label, style = MaterialTheme.typography.titleMedium, maxLines = 1,
                         overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
                     )
-                    Text(String.format(Locale.getDefault(), "%.0f%%", a.share * 100f), style = MaterialTheme.typography.titleMedium, color = color)
+                    Text(pct(a.batteryPct), style = MaterialTheme.typography.titleMedium, color = color)
                 }
                 Text(
-                    "${formatDuration(a.foregroundMs)} on screen · " + String.format(Locale.getDefault(), "%,.0f mAh", a.mah),
+                    "${formatDuration(a.foregroundMs)} on screen · " + String.format(Locale.getDefault(), "%,.0f mAh", a.mah) +
+                        " · " + String.format(Locale.getDefault(), "%.0f%% of use", a.share * 100f),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant,
                 )
@@ -323,10 +338,10 @@ private fun AppRow(a: AppDrain, max: Float, color: Color) {
 }
 
 @Composable
-private fun OtherRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, sub: String, mah: Float, total: Float) {
+private fun OtherRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, sub: String, mah: Float, r: DrainReport) {
     InfoRow(
         title,
-        if (total > 0f) String.format(Locale.getDefault(), "%.0f%%", mah / total * 100f) else "—",
+        pct(r.pctOf(mah)),
         sub + " · " + String.format(Locale.getDefault(), "%,.0f mAh", mah),
         icon = icon,
     )

@@ -2,6 +2,12 @@ package com.batterypulse.app.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -87,8 +93,21 @@ enum class Tab(val label: String, val title: String, val icon: ImageVector, val 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BatariaApp(onReplayTour: () -> Unit = {}) {
-    var tab by rememberSaveable { mutableStateOf(Tab.Now) }
+    val pager = rememberPagerState(initialPage = 0) { Tab.entries.size }
+    val scope = rememberCoroutineScope()
+    val tab = Tab.entries[pager.currentPage]
     val haptics = LocalHapticFeedback.current
+    fun go(t: Tab) {
+        scope.launch { pager.animateScrollToPage(t.ordinal) }
+    }
+    // A light tick each time a swipe lands on a new screen.
+    LaunchedEffect(pager) {
+        snapshotFlow { pager.settledPage }.drop(1).collect {
+            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+    }
+    // Back goes to the first screen before leaving the app.
+    BackHandler(enabled = pager.currentPage != 0) { go(Tab.Now) }
 
     val snapshot by BatteryMonitor.snapshot.collectAsStateWithLifecycle()
     val recent by BatteryMonitor.recent.collectAsStateWithLifecycle()
@@ -124,23 +143,17 @@ fun BatariaApp(onReplayTour: () -> Unit = {}) {
         }
     }
     Box(Modifier.fillMaxSize()) {
-    AppScaffold(tab = tab, background = appearance.background, onTab = { t ->
-        if (t != tab) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        tab = t
-    }) { padding ->
-        AnimatedContent(
-            targetState = tab,
-            transitionSpec = {
-                (fadeIn(tween(260, delayMillis = 60)) + scaleIn(tween(260, delayMillis = 60), initialScale = 0.97f))
-                    .togetherWith(fadeOut(tween(90)))
-            },
-            label = "tabs",
-        ) { t ->
-            when (t) {
+    AppScaffold(tab = tab, background = appearance.background, onTab = { t -> go(t) }) { padding ->
+        HorizontalPager(
+            state = pager,
+            modifier = Modifier.fillMaxSize(),
+            key = { it },
+        ) { page ->
+            when (Tab.entries[page]) {
                 Tab.Now -> NowScreen(
                     s = snapshot, recent = recent, health = health, time = time, live = live,
                     history = history, monitoring = monitoring, padding = padding,
-                    onOpenHealth = { tab = Tab.Health },
+                    onOpenHealth = { go(Tab.Health) },
                     onOpenCharger = { showTester = true },
                 )
                 Tab.Apps -> AppsScreen(history, health.estimatedMah ?: health.designMah, padding)

@@ -19,7 +19,10 @@ data class AppDrain(
     val icon: ImageBitmap?,
     val foregroundMs: Long,
     val mah: Float,
+    /** Share of all battery drained in the period (0..1). */
     val share: Float,
+    /** Percentage points of the full battery this app used, e.g. 3.2 means 3.2% of a full charge. */
+    val batteryPct: Float = 0f,
 )
 
 data class DrainReport(
@@ -30,7 +33,12 @@ data class DrainReport(
     /** Screen on but no app in the foreground we could identify (system UI, lock screen…). */
     val otherMah: Float,
     val totalMah: Float,
-)
+    /** Full-charge capacity used to turn mAh into battery %. */
+    val capacityMah: Float = 0f,
+) {
+    fun pctOf(mah: Float): Float = if (capacityMah > 0f) mah / capacityMah * 100f else 0f
+    val totalPct: Float get() = pctOf(totalMah)
+}
 
 /**
  * Estimates battery used by each app: every discharge interval in the history is split between
@@ -173,8 +181,12 @@ object AppUsage {
                 } catch (e: Exception) {
                     pkg.substringAfterLast('.').replaceFirstChar { it.uppercase() } to null
                 }
-                AppDrain(pkg, label, icon, fg[pkg] ?: 0L, mah.toFloat(), if (total > 0) (mah / total).toFloat() else 0f)
+                AppDrain(
+                    pkg, label, icon, fg[pkg] ?: 0L, mah.toFloat(),
+                    share = if (total > 0) (mah / total).toFloat() else 0f,
+                    batteryPct = if (capacityMah > 0f) (mah / capacityMah * 100.0).toFloat() else 0f,
+                )
             }
-        return DrainReport(apps, off.toFloat(), offMs, other.toFloat(), total.toFloat())
+        return DrainReport(apps, off.toFloat(), offMs, other.toFloat(), total.toFloat(), capacityMah)
     }
 }

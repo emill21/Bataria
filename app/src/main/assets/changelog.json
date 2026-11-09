@@ -1,5 +1,15 @@
 [
   {
+    "version": "3.6",
+    "date": "2026-11-09",
+    "title": "Swipe between screens",
+    "items": [
+      "Swipe left or right to move between Now, Health, History, Apps and Settings; Back returns to Now",
+      "App usage now shows how much of your battery each app actually used (for example 3.2%), instead of its share of the drain",
+      "The total at the top shows how much battery was used in the period, and each app still shows its share of use underneath"
+    ]
+  },
+  {
     "version": "3.5",
     "date": "2026-11-06",
     "title": "A new icon",
